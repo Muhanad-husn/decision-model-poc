@@ -15,6 +15,7 @@ from src.jev import (
     MODEL,
     ParseError,
     build_request,
+    check_runs,
     cost_usd,
     make_client,
     parse_answers,
@@ -248,3 +249,46 @@ def test_concurrency_never_exceeds_four(tmp_path):
     summary = run(items, client_for(handler), tmp_path, questions=QUESTIONS, concurrency=8, sleep=lambda s: None)
     assert summary["parsed"] == 12
     assert peak[0] == 4  # asked for 8, capped at the PRD's 4
+
+
+# Cross-run check (slice 04)
+
+def write_run(run_dir, rows):
+    run_dir.mkdir(parents=True)
+    with (run_dir / "responses.jsonl").open("w", encoding="utf-8") as f:
+        for item_id, body, response in rows:
+            f.write(json.dumps({"item_id": item_id, "request_hash": request_hash(body),
+                                "parsed": True, "response": response}) + "\n")
+
+
+def test_check_runs_passes_two_identical_valid_runs(tmp_path):
+    rows = [(i["id"], build_request(i, QUESTIONS), good_body()) for i in ITEMS]
+    write_run(tmp_path / "r1", rows)
+    write_run(tmp_path / "r2", rows)
+    check = check_runs(tmp_path / "r1", tmp_path / "r2", questions=QUESTIONS)
+    assert check["ok"] is True
+    assert check["valid"] == 2 * len(ITEMS)
+    assert check["invalid"] == [] and check["hash_mismatches"] == [] and check["missing"] == []
+
+
+def test_check_runs_lists_a_response_missing_probabilities(tmp_path):
+    broken = good_body()
+    del broken["answers"]["theory_school"]["probabilities"]
+    rows = [(i["id"], build_request(i, QUESTIONS), good_body()) for i in ITEMS]
+    write_run(tmp_path / "r1", rows)
+    write_run(tmp_path / "r2", rows[:-1] + [(ITEMS[-1]["id"], rows[-1][1], broken)])
+    check = check_runs(tmp_path / "r1", tmp_path / "r2", questions=QUESTIONS)
+    assert check["ok"] is False
+    assert check["valid"] == 2 * len(ITEMS) - 1
+    assert [(v["run"], v["item_id"]) for v in check["invalid"]] == [("r2", ITEMS[-1]["id"])]
+
+
+def test_check_runs_lists_items_whose_request_hash_differs_or_is_missing(tmp_path):
+    rows = [(i["id"], build_request(i, QUESTIONS), good_body()) for i in ITEMS]
+    changed = dict(ITEMS[0], text="A different passage.")
+    write_run(tmp_path / "r1", rows)
+    write_run(tmp_path / "r2", [(ITEMS[0]["id"], build_request(changed, QUESTIONS), good_body())] + rows[1:-1])
+    check = check_runs(tmp_path / "r1", tmp_path / "r2", questions=QUESTIONS)
+    assert check["ok"] is False
+    assert check["hash_mismatches"] == [ITEMS[0]["id"]]
+    assert check["missing"] == [{"run": "r2", "item_id": ITEMS[-1]["id"]}]
