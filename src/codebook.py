@@ -66,3 +66,12 @@ def build_questions(codebook):
 
 def questions(path=CODEBOOK):
     return build_questions(load_codebook(path))
+
+
+def restore_option(value, options):
+    """(option, True) when value is an option id missing only its `scope:`/`role:` prefix and
+    exactly one option matches; otherwise (value, False). One rule for both arms."""
+    if not isinstance(value, str) or value in options:
+        return value, False
+    matches = [o for o in options if ":" in o and o.split(":", 1)[1] == value]
+    return (matches[0], True) if len(matches) == 1 else (value, False)
