@@ -40,8 +40,10 @@ MODEL = "claude-sonnet-5-5"
 SONNET_55 = re.compile(r"^claude-sonnet-5-5(?![0-9])")
 BATCH_SIZE = 10
 # Total input tokens (input + cache read + cache creation) the calibration call may cost.
-# None until the smoke run measures it; a draw refuses to start without it.
-CALIBRATION_CEILING = None
+# The 2 Oct 2026 smoke measured 462 on CLI 2.1.288 with ~10 tokens of our own text. 600 leaves
+# ~30% for CLI drift and still trips on the smallest leak in reach: the user CLAUDE.md alone
+# is ~300 tokens.
+CALIBRATION_CEILING = 600
 CALIBRATION_SYSTEM = "Reply with exactly one word."
 CALIBRATION_USER = "ping"
 # CreateProcess refuses a command line past 32,767 characters; the system prompt rides argv.
