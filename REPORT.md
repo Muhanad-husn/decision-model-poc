@@ -28,3 +28,6 @@ Bars frozen in `bars.json` at commit `9be94c890414eca356a17689fe13c3d7ab1c2c58`
 | 2026-10-02 | Bars frozen (`9be94c8`). |
 | 2026-10-02 | Axial DEC-77 recorded (Muhanad-husn/axial#885, `c02b94c`). |
 | 2026-10-02 | 130 Axial input files copied read-only to `data/axial/`; SHA-256 manifest in `manifests/axial.json`. |
+| 2026-10-02 | Jev smoke, 5 Axial items, run `smoke-axial-20261002`: `jev-1.13.0`, typesafe-sdk 0.7.2, 5 of 5 parsed, 27,313 input tokens, $0.0011. |
+| 2026-10-02 | S55 smoke, 5 Axial items, run `smoke-20261002c`: `claude-sonnet-5-5` on Claude Code 2.1.288, 0 invalid, harness overhead 462 input tokens (ceiling 600). |
+| 2026-10-03 | Jev runs 1 and 2, 120 Axial items each, runs `axial-run1-20261003` and `axial-run2-20261003`: `jev-1.13.0`, typesafe-sdk 0.7.2, 240 of 240 responses valid, request hashes identical item by item (and identical to the smoke run's 5), no retries, 652,448 input tokens and $0.0274 per run; cumulative TypeSafe spend $0.0560. |
