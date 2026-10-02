@@ -10,7 +10,7 @@ holds; the score column carries the measured figure that proves it.
 | Phase | State | Score |
 |---|---|---|
 | 0 M0 Setup | done | 130-file manifest committed; bars.json frozen at 9be94c8 |
-| 1 M1 Axial items | open | every §5.1 sanity value reproduced, asserted by a test |
+| 1 M1 Axial items | done | every §5.1 sanity value reproduced, asserted by tests/test_axial_items.py; median length measures 1,441.5 (PRD states 1,441) |
 | 2 M2 JEV on Axial | open | 240 valid responses; cost logged |
 | 3 M3 S55 on Axial | open | 360 item-labels; invalid labels listed |
 | 4 M4 CIP export | open | 200 + 200 items; drop counts recorded |
