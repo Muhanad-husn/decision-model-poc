@@ -5,5 +5,11 @@
   "env": {
     "AEO_LIVE_DATA_ROOT": "D:/CIP-data",
     "AEO_DATA_ROOT": ""
+  },
+  "permissions": {
+    "allow": [
+      "Bash(uv run python src/s55.py:*)",
+      "PowerShell(uv run python src/s55.py:*)"
+    ]
   }
 }
