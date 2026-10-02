@@ -3,7 +3,7 @@
     "aeo@aeo": true
   },
   "env": {
-    "AEO_LIVE_DATA_ROOT": "",
+    "AEO_LIVE_DATA_ROOT": "D:/CIP-data",
     "AEO_DATA_ROOT": ""
   }
 }
