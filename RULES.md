@@ -1,7 +1,6 @@
 # Rules
 
-The full specification is the PRD, master copy at
-`D:\The Merge Seat\research\decision-model-poc\PRD.md`. These are the rules that hold on
+The full specification is the PRD, [`specs/PRD.md`](specs/PRD.md). These are the rules that hold on
 every slice of work; where this page and the PRD disagree, the PRD wins and this page is
 fixed.
 

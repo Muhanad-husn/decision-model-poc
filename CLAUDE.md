@@ -8,9 +8,9 @@ under `results/`.
 
 ## Where the truth lives
 
-- **The PRD is the spec.** Master copy:
-  `D:\The Merge Seat\research\decision-model-poc\PRD.md`. It is not copied into this
-  repository and must not be. Every decision in it is taken; nothing is open.
+- **The PRD is the spec:** [`specs/PRD.md`](specs/PRD.md), copied from the master at
+  `D:\The Merge Seat\research\decision-model-poc\PRD.md`. Every decision in it is taken;
+  nothing is open.
 - **`bars.json`** holds PRD §8 verbatim once M0 lands. It is frozen by commit before any
   model call and never edited after a result is seen.
 - **`RULES.md`** carries the standing rules and the kill line.
