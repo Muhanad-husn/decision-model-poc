@@ -81,8 +81,9 @@ marker as a hedge).
 
 Work through every passage — do not skip any. Reply with a single JSON object keyed by
 passage key, each value an object with exactly these keys: {axes}. Every value is one
-option id from the codebook, written exactly as listed. Do not echo the passage text
-back. Reply with the JSON object only, no other text."""
+option id from the codebook, written exactly as listed,
+including its `scope:` or `role:` prefix. Do not echo the passage text back. Reply with
+the JSON object only, no other text."""
 
 PASSAGE = re.compile(r'<passage key="([^"]+)">')
 
