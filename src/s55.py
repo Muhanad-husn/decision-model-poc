@@ -12,8 +12,8 @@ then recorded as `invalid`.
 
 Run: uv run python src/s55.py --run-id <id> --draw <n> [--limit 5]
      uv run python src/s55.py --run-id <id> --calibrate   (measure only)
-Writes runs/s55/<run_id>/draw_<n>/: calls/ (raw CLI output), calls.jsonl, labels.jsonl,
-summary.json.
+Writes runs/s55/<run_id>/draw_<n>/ (or calibration/): calls/ (raw CLI output), calls.jsonl,
+labels.jsonl, summary.json. A run dir that already holds calls is refused.
 """
 
 import argparse
@@ -173,6 +173,8 @@ def input_total(usage):
 class Draw:
     def __init__(self, run_dir, runner, pause):
         self.dir = Path(run_dir)
+        if (self.dir / "calls.jsonl").exists():
+            raise FileExistsError(f"{self.dir} already holds calls; use a new run id or draw")
         (self.dir / "calls").mkdir(parents=True, exist_ok=True)
         self.runner = runner
         self.pause = pause
@@ -293,7 +295,7 @@ def main(args=None, runner=None, runs_root=RUNS):
     p.add_argument("--pause", type=float, default=5.0, help="seconds between calls")
     p.add_argument("--calibrate", action="store_true", help="measure harness overhead only")
     a = p.parse_args(args)
-    run_dir = Path(runs_root) / a.run_id / f"draw_{a.draw}"
+    run_dir = Path(runs_root) / a.run_id / ("calibration" if a.calibrate else f"draw_{a.draw}")
     version = cli_version() if runner is None else None
     runner = runner or subprocess_runner
     try:
@@ -311,6 +313,9 @@ def main(args=None, runner=None, runs_root=RUNS):
     except CalibrationExceeded as e:
         print(f"ABORT: {e}", file=sys.stderr)
         return EXIT_CALIBRATION
+    except FileExistsError as e:
+        print(f"REFUSED: {e}", file=sys.stderr)
+        return 2
     except CLIError as e:
         print(f"CLI ERROR: {e}", file=sys.stderr)
         return EXIT_CLI
