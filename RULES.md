@@ -10,6 +10,7 @@ fixed.
 - **Spend guard.** The Jev runner keeps a running cost from `usage.input_tokens` at $0.042 per million and aborts when cumulative spend passes $2.00. Concurrency is 4 at most. Back off exponentially on 429 and 529.
 - **Smoke first.** Five items per set through both arms, with parsing and cost checked, before any full run.
 - **Source data is read-only.** `D:\axial` is copied from, never written to. `D:\CIP-data\db\cip.sqlite` is opened only with `mode=ro`, exported once to `data/cip/`, and never written, migrated or vacuumed.
+- **The founder runs the CIP export.** `AEO_LIVE_DATA_ROOT` is `D:/CIP-data`, so the guard refuses any command that runs code against it. At M4 Claude writes the read-only export script and hands over the one command; the founder runs it. The database path is never hidden in script source to get past the guard.
 - **No text leaves in git.** `data/`, `runs/` and `.env` are ignored. No passage text, CIP text or key is ever committed.
 - **No guessed joins.** If CIP actors cannot be linked to a source passage through the event edges, stop and report the schema gap.
 - **Out of scope stays out.** No other decision models, no local GPUs, no fine-tuning, no prompt-injection tests, no change to Axial or CIP code, no manual labelling.
