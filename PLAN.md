@@ -12,7 +12,7 @@ holds; the score column carries the measured figure that proves it.
 | 0 M0 Setup | done | 130-file manifest committed; bars.json frozen at 9be94c8 |
 | 1 M1 Axial items | done | every §5.1 sanity value reproduced, asserted by tests/test_axial_items.py |
 | 2 M2 JEV on Axial | done | 240 of 240 valid, request hashes identical across runs; $0.0548 booked (`jev.py --check`) |
-| 3 M3 S55 on Axial | open | 360 item-labels; invalid labels listed |
+| 3 M3 S55 on Axial | done | 360 item-labels, 0 invalid, every call `claude-sonnet-5-5` (run `axial-20261003b`) |
 | 4 M4 CIP export | open | 200 + 200 items; drop counts recorded |
 | 5 M5 CIP runs | open | all responses valid or listed |
 | 6 M6 Metrics | open | tests green; every figure carries its interval |
