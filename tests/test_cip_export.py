@@ -116,8 +116,9 @@ def build(path, *, wal=False, extra=None):
     if extra:
         extra(rows)
     for table, values in rows.items():
+        cols = "(edge_id, source_node_id, target_node_id)" if table in EDGES else ""
         for v in values:
-            con.execute(f"INSERT INTO {table} VALUES ({', '.join('?' * len(v))})", v)
+            con.execute(f"INSERT INTO {table} {cols} VALUES ({', '.join('?' * len(v))})", v)
     con.commit()
     con.close()
     return path
@@ -221,7 +222,7 @@ def test_c1_excludes_coded_feed_provenance_and_unlinked_actors(db, tmp_path):
     # a3: no event edge. a4: carries a coded-feed actor id. a5: linked only to a gdelt event.
     assert set(c1) == {"a1", "a2"}
     assert summary["c1"]["excluded"] == {
-        "coded_feed_actor_id": 1, "coded_feed_event": 1, "no_passage_naming_actor": 1,
+        "coded_feed_actor_id": 1, "coded_feed_event": 1, "no_event_edge": 1,
     }
     # a1 is also linked to e3 (gdelt) through targeted_in; that passage never appears.
     assert all(p["event_id"] != "e3" for p in c1["a1"]["passages"])
