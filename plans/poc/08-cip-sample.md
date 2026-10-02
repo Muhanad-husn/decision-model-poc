@@ -26,3 +26,12 @@ depends-on: 07-cip-export
 
 ## Out of scope
 Option descriptions (slice 09).
+
+## Founder rulings (2026-10-03)
+PRD §5.2's "up to 25 per class, fill the remainder to 200" cannot hold on C1: 16 actor_type
+classes of up to 25 make 372 eligible items. Ruled: every class takes the largest equal quota
+k <= 25 whose strata fit 200 (13 on C1), then random fill. C2 is stratified by `claim_type`
+(8 x 25 = 200, no fill). A passage over 1,500 characters (the PRD §5.2 task-table cap) makes it
+ineligible and is counted beside the non-English and under-80 drops, not truncated. The
+passage language is detected with langid, since the export's language fields describe the
+source and the original claim, not the passage.

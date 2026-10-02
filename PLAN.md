@@ -13,7 +13,7 @@ holds; the score column carries the measured figure that proves it.
 | 1 M1 Axial items | done | every §5.1 sanity value reproduced, asserted by tests/test_axial_items.py |
 | 2 M2 JEV on Axial | done | 240 of 240 valid, request hashes identical across runs; $0.0548 booked (`jev.py --check`) |
 | 3 M3 S55 on Axial | done | 360 item-labels, 0 invalid, every call `claude-sonnet-5-5` (run `axial-20261003b`) |
-| 4 M4 CIP export | open | 200 + 200 items; drop counts recorded |
+| 4 M4 CIP export | done | 200 C1 + 200 C2 items, identical across two runs; drop counts in REPORT.md run log; options.yaml frozen by SHA-256 |
 | 5 M5 CIP runs | open | all responses valid or listed |
 | 6 M6 Metrics | open | tests green; every figure carries its interval |
 | 7 M7 Report | open | every bar marked pass or fail with its number |
