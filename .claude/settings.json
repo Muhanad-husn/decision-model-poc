@@ -1,0 +1,9 @@
+{
+  "enabledPlugins": {
+    "aeo@aeo": true
+  },
+  "env": {
+    "AEO_LIVE_DATA_ROOT": "",
+    "AEO_DATA_ROOT": ""
+  }
+}
