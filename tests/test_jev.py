@@ -9,6 +9,7 @@ import time
 import httpx2
 import pytest
 
+from src import cip, jev
 from src.codebook import questions as codebook_questions
 from src.jev import (
     CEILING_USD,
@@ -108,6 +109,31 @@ def test_missing_option_probability_is_a_parse_failure():
     del body["answers"]["claim_type"]["probabilities"][dropped]
     with pytest.raises(ParseError, match="claim_type"):
         parse_answers(body, QUESTIONS)
+
+
+def test_option_id_missing_only_its_prefix_is_that_option_and_counted():
+    body = good_body()
+    scope = body["answers"]["empirical_scope"]
+    full = scope["choice"]
+    assert full.startswith("scope:")
+    scope["choice"] = full.split(":", 1)[1]
+    scope["probabilities"] = {o.split(":", 1)[1]: p for o, p in scope["probabilities"].items()}
+    parsed = parse_answers(body, QUESTIONS)
+    assert parsed["empirical_scope"]["choice"] == full
+    assert set(parsed["empirical_scope"]["probabilities"]) == set(QUESTIONS["empirical_scope"]["criteria"])
+    assert parsed["empirical_scope"]["prefix_restored"] is True
+    assert parsed["field"]["prefix_restored"] is False
+
+
+def test_run_summary_reports_prefix_restored(tmp_path):
+    def bare(request):
+        body = good_body()
+        role = body["answers"]["role_in_argument"]
+        role["choice"] = role["choice"].split(":", 1)[1]
+        return httpx2.Response(200, json=body)
+
+    summary = run(ITEMS[:2], client_for(bare), tmp_path, questions=QUESTIONS, sleep=lambda s: None)
+    assert summary["parsed"] == 2 and summary["prefix_restored"] == 2
 
 
 def test_choice_outside_the_options_is_a_parse_failure():
@@ -292,3 +318,23 @@ def test_check_runs_lists_items_whose_request_hash_differs_or_is_missing(tmp_pat
     assert check["ok"] is False
     assert check["hash_mismatches"] == [ITEMS[0]["id"]]
     assert check["missing"] == [{"run": "r2", "item_id": ITEMS[-1]["id"]}]
+
+
+# CIP sets (slice 10)
+
+def test_cip_request_is_the_cip_state_and_the_task_questions():
+    item = {"id": "x", "text": cip.state({"name": "An Actor", "passage": "A passage."}, "c1")}
+    body = build_request(item, cip.questions("c1"))
+    assert body["state"] == "Actor: An Actor\n\nPassage: A passage."
+    assert list(body["questions"]) == ["actor_type"]
+
+
+def test_main_refuses_a_cip_set_when_options_differ_from_the_committed_hash(tmp_path, monkeypatch):
+    manifest = tmp_path / "cip_options.json"
+    manifest.write_text(json.dumps({"path": "data/cip/options.yaml", "sha256": "0" * 64}))
+    monkeypatch.setattr(cip, "MANIFEST", manifest)
+    monkeypatch.setattr(jev, "RUNS", tmp_path / "runs")
+    monkeypatch.setenv("TYPESAFE_API_KEY", "test-key")
+    monkeypatch.setattr(jev, "make_client", lambda *a, **k: pytest.fail("a client was made"))
+    assert jev.main(["--set", "c1", "--run-id", "t", "--limit", "1"]) == 2
+    assert not (tmp_path / "runs").exists()
