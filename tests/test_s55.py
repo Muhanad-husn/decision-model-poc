@@ -233,3 +233,11 @@ def test_calibration_total_counts_cache_tokens_and_is_logged_as_overhead(tmp_pat
     summary = s55.run_draw(items(1), run_dir=tmp_path, runner=cli, draw=1, ceiling=100)
     assert summary["harness_overhead_input_tokens"] == 60
     assert summary["calibration_ceiling"] == 100
+
+
+def test_a_draw_refuses_a_run_dir_that_already_holds_calls(tmp_path):
+    (tmp_path / "calls.jsonl").write_text("{}\n")
+    cli = FakeCLI()
+    with pytest.raises(FileExistsError):
+        s55.run_draw(items(1), run_dir=tmp_path, runner=cli, draw=1, ceiling=100)
+    assert cli.calls == []
