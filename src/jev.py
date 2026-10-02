@@ -9,6 +9,7 @@ Every response, failures included, lands raw in runs/jev/<run_id>/responses.json
 request hash, latency and input tokens, and summary.json closes the run.
 
 Run: uv run python src/jev.py --set axial --limit 5 --run-id smoke-axial-YYYYMMDD
+     uv run python src/jev.py --check <run_id_1> <run_id_2>   (no calls: validity, hash match)
 """
 
 import argparse
@@ -198,6 +199,48 @@ def run(items, client, run_dir, *, questions, concurrency=MAX_CONCURRENCY, sleep
     return summary
 
 
+def _rows(run_dir):
+    """{item_id: row} from a run's responses.jsonl; a later row for an item replaces an earlier."""
+    rows = {}
+    for line in (Path(run_dir) / "responses.jsonl").read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            row = json.loads(line)
+            rows[row["item_id"]] = row
+    return rows
+
+
+def check_runs(*run_dirs, questions):
+    """Validity across runs of the same items: each response re-parsed against the questions,
+    each item's request hash compared across runs, each item absent from a run listed."""
+    runs = {Path(d).name: _rows(d) for d in run_dirs}
+    ids = sorted(set().union(*runs.values()))
+    invalid, missing, mismatches, valid = [], [], [], 0
+    for item_id in ids:
+        hashes = set()
+        for name, rows in runs.items():
+            row = rows.get(item_id)
+            if row is None:
+                missing.append({"run": name, "item_id": item_id})
+                continue
+            hashes.add(row["request_hash"])
+            try:
+                parse_answers(row.get("response") or {}, questions)
+                valid += 1
+            except ParseError as e:
+                invalid.append({"run": name, "item_id": item_id, "error": str(e)})
+        if len(hashes) > 1:
+            mismatches.append(item_id)
+    return {
+        "runs": list(runs),
+        "items": len(ids),
+        "valid": valid,
+        "invalid": invalid,
+        "hash_mismatches": mismatches,
+        "missing": missing,
+        "ok": not (invalid or mismatches or missing),
+    }
+
+
 def load_key(env_file=ROOT / ".env"):
     key = os.environ.get("TYPESAFE_API_KEY", "").strip()
     if not key and env_file.exists():
@@ -210,10 +253,19 @@ def load_key(env_file=ROOT / ".env"):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("--set", choices=sorted(SETS), required=True)
-    p.add_argument("--run-id", required=True)
+    p.add_argument("--set", choices=sorted(SETS))
+    p.add_argument("--run-id")
     p.add_argument("--limit", type=int, help="first N items only (the smoke run uses 5)")
+    p.add_argument("--check", nargs="+", metavar="RUN_ID",
+                   help="no calls: validate these runs and compare request hashes item by item")
     args = p.parse_args(argv)
+
+    if args.check:
+        check = check_runs(*(RUNS / r for r in args.check), questions=codebook_questions())
+        print(json.dumps(check, indent=2))
+        return 0 if check["ok"] else 1
+    if not (args.set and args.run_id):
+        p.error("--set and --run-id are required unless --check is given")
 
     key = load_key()
     if not key:

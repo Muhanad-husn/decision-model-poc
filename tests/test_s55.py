@@ -192,6 +192,23 @@ def test_item_still_invalid_after_reask_is_recorded_invalid(tmp_path):
     assert summary["invalid"] == [{"id": "item-000", "axes": ["theory_school"]}]
 
 
+def test_option_id_missing_only_its_prefix_is_that_option_not_a_reask(tmp_path):
+    role, scope = valid_labels()["role_in_argument"], valid_labels()["empirical_scope"]
+    assert role.startswith("role:") and scope.startswith("scope:")
+    bare = {"role_in_argument": role.split(":", 1)[1], "empirical_scope": scope.split(":", 1)[1]}
+    cli = FakeCLI(calibration(), lambda s: labels_for(s, {"1": bare, "2": bare}))
+    summary = s55.run_draw(items(2), run_dir=tmp_path, runner=cli, draw=1, ceiling=100)
+    assert len(cli.calls) == 2  # calibration and one batch, no re-ask
+    rows = [json.loads(line) for line in (tmp_path / "labels.jsonl").read_text().splitlines()]
+    assert all(r["labels"] == valid_labels() and r["reasked"] is False for r in rows)
+    assert summary["prefix_restored"] == 4 and summary["invalid"] == []
+
+
+def test_a_bare_word_matching_no_option_is_still_invalid():
+    labels = {**valid_labels(), "role_in_argument": "not-a-role"}
+    assert s55.invalid_axes(s55.restore_prefixes(labels, QUESTIONS)[0], QUESTIONS) == ["role_in_argument"]
+
+
 def test_unparseable_reply_reasks_every_item_alone(tmp_path):
     cli = FakeCLI(calibration(), canned("I cannot do that."), lambda s: labels_for(s), lambda s: labels_for(s))
     summary = s55.run_draw(items(2), run_dir=tmp_path, runner=cli, draw=1, ceiling=100)
