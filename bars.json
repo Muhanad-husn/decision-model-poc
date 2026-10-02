@@ -1,0 +1,68 @@
+{
+  "frozen": "2026-10-02",
+  "source": "D:\\The Merge Seat\\research\\decision-model-poc\\PRD.md §8",
+  "note": "Frozen before any model call. Never edited after a result is seen; an ill-posed bar is reported as such.",
+  "verbatim": "## 8. Pre-registered bars\n\n| Bar | Test | Pass when |\n|---|---|---|\n| B1 | Axial parity with an out-of-family LLM coder | On each of `claim_type`, `field`, `empirical_scope` and `role_in_argument`, JEV agreement with the reference ≥ PROD-A agreement − 0.05 |\n| B1b | Axial `theory_school` | JEV agreement with the reference ≥ 0.50 (two frontier LLMs of different families agreed 0.49 on this axis in July) |\n| B3 | Doubt flag | AUROC ≥ 0.70 on Axial `theory_school` (61 contested, 59 unanimous) |\n| B4 | Cost | JEV cost per item ≤ 1/20 of S55's API-equivalent cost per item for a single draw |\n| B5 | Determinism | 100% identical argmax across the two runs on both sets |\n| B6 | CIP parity | On each C question, JEV mean agreement with the individual S55 draws ≥ the S55 mean pairwise draw agreement − 0.10 |\n\n**Verdict line.**\n\n- The concept **holds** when B1, B1b, B4 and B5 pass, and B6 passes on at least two of the three C questions.\n- B3 is reported as its own finding, whatever the verdict.\n\n**Why the tolerances differ.**\n\n- Each 0.05 tolerance is about the size of the bootstrap interval at n = 120.\n- B6 allows 0.10 because S55 draws agree with each other more than an outside coder can. Axial measured the gap: same-family agreement 0.75 against cross-family 0.49 on `claim_type`.",
+  "bars": [
+    {
+      "id": "B1",
+      "axes": [
+        "claim_type",
+        "field",
+        "empirical_scope",
+        "role_in_argument"
+      ],
+      "comparator": "PROD-A",
+      "tolerance": 0.05,
+      "rule": "on each axis, JEV agreement with reference >= PROD-A agreement - tolerance"
+    },
+    {
+      "id": "B1b",
+      "axis": "theory_school",
+      "min_agreement": 0.5,
+      "rule": "JEV agreement with reference >= min_agreement"
+    },
+    {
+      "id": "B3",
+      "axis": "theory_school",
+      "min_auroc": 0.7,
+      "rule": "AUROC of 1 - JEV confidence predicting contested vs unanimous >= min_auroc"
+    },
+    {
+      "id": "B4",
+      "max_cost_ratio": 0.05,
+      "rule": "JEV cost per item <= max_cost_ratio x S55 API-equivalent cost per item, single draw"
+    },
+    {
+      "id": "B5",
+      "sets": [
+        "axial",
+        "cip"
+      ],
+      "min_identical_argmax": 1.0,
+      "rule": "share of items with identical argmax across run 1 and run 2, on both sets"
+    },
+    {
+      "id": "B6",
+      "questions": [
+        "actor_type",
+        "claim_type",
+        "claim_subject_type"
+      ],
+      "tolerance": 0.1,
+      "rule": "on each C question, JEV mean agreement with individual S55 draws >= S55 mean pairwise draw agreement - tolerance"
+    }
+  ],
+  "verdict": {
+    "must_pass": [
+      "B1",
+      "B1b",
+      "B4",
+      "B5"
+    ],
+    "B6_min_questions_passing": 2,
+    "reported_separately": [
+      "B3"
+    ]
+  }
+}
