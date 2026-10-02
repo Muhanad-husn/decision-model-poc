@@ -7,8 +7,9 @@ outside the repo, no tools, no MCP, no slash commands, no setting sources, no se
 persistence, and the parent session's env vars dropped. A calibration call opens each draw
 and measures the input tokens the CLI adds around a near-empty prompt; past the ceiling the
 draw aborts, and the figure is logged as harness overhead. A resolved model id that is not
-Sonnet 5.5 stops the draw (RULES.md kill line). An invalid item is re-asked once alone,
-then recorded as `invalid`.
+Sonnet 5.5 stops the draw (RULES.md kill line). A label that is an option id missing only its
+`scope:` or `role:` prefix is that option and is counted as restored; an invalid item is
+re-asked once alone, then recorded as `invalid`.
 
 Run: uv run python src/s55.py --run-id <id> --draw <n> [--limit 5]
      uv run python src/s55.py --run-id <id> --calibrate   (measure only)
@@ -160,6 +161,23 @@ def parse_labels(text):
     return obj if isinstance(obj, dict) else None
 
 
+def restore_prefixes(labels, qs):
+    """Map a value that is an option id missing only its `scope:`/`role:` prefix onto that
+    option, when exactly one option matches. Returns (labels, number restored). Anything
+    else is left as given, so validation still catches it."""
+    if not isinstance(labels, dict):
+        return labels, 0
+    out, restored = dict(labels), 0
+    for axis, q in qs.items():
+        value = out.get(axis)
+        if not isinstance(value, str) or value in q["criteria"]:
+            continue
+        matches = [o for o in q["criteria"] if ":" in o and o.split(":", 1)[1] == value]
+        if len(matches) == 1:
+            out[axis], restored = matches[0], restored + 1
+    return out, restored
+
+
 def invalid_axes(labels, qs):
     if not isinstance(labels, dict):
         return list(qs)
@@ -241,18 +259,21 @@ def run_draw(items, *, run_dir, runner=subprocess_runner, draw=1, ceiling=CALIBR
     if overhead > ceiling:
         raise CalibrationExceeded(f"calibration input tokens {overhead} over the ceiling {ceiling}")
     system = system_prompt(qs)
-    out, reasked = {}, set()
+    out, reasked, restored = {}, set(), 0
     for batch in batches(items, batch_size):
         user = user_prompt(batch)
         reply, _ = d.call("batch", system, user, [i["id"] for i in batch])
         labels = parse_labels(reply.get("result") or "") or {}
         for key, item in zip(batch_keys(user), batch):
-            got = labels.get(key)
+            got, n = restore_prefixes(labels.get(key), qs)
+            restored += n
             if invalid_axes(got, qs):
                 reasked.add(item["id"])
                 lone = user_prompt([item])
                 again, _ = d.call("reask", system, lone, [item["id"]])
-                got = (parse_labels(again.get("result") or "") or {}).get(batch_keys(lone)[0])
+                got, n = restore_prefixes(
+                    (parse_labels(again.get("result") or "") or {}).get(batch_keys(lone)[0]), qs)
+                restored += n
                 bad = invalid_axes(got, qs)
                 got = {axis: "invalid" if axis in bad else got[axis] for axis in qs}
             out[item["id"]] = {axis: got[axis] for axis in qs}
@@ -266,7 +287,7 @@ def run_draw(items, *, run_dir, runner=subprocess_runner, draw=1, ceiling=CALIBR
         "draw": draw, "items": len(items), "calls": d.n, "models": sorted(d.models),
         "harness_overhead_input_tokens": overhead, "calibration_ceiling": ceiling,
         "usage": d.usage, "duration_ms": d.duration_ms,
-        "reasked": sorted(reasked), "invalid": invalid,
+        "reasked": sorted(reasked), "prefix_restored": restored, "invalid": invalid,
     }
     (d.dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     return summary
@@ -324,7 +345,7 @@ def main(args=None, runner=None, runs_root=RUNS):
     (run_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(json.dumps({k: summary[k] for k in
                       ("run_id", "draw", "items", "calls", "models", "harness_overhead_input_tokens",
-                       "usage", "duration_ms", "reasked", "invalid")}))
+                       "usage", "duration_ms", "reasked", "prefix_restored", "invalid")}))
     return 0
 
 
