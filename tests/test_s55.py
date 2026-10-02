@@ -87,6 +87,8 @@ def test_system_prompt_merges_blind_and_head_axes_with_codebook_text():
         for option, text in q["criteria"].items():
             assert f"`{option}`: {text}" in system
     assert "Do not read or write any other files" not in system  # no file reads in this method
+    # The 2 Oct smoke saw `claim` for `role:claim` on every item of a batch.
+    assert "including its `scope:` or `role:` prefix" in system
 
 
 def test_user_prompt_inlines_the_batch_under_short_keys():
