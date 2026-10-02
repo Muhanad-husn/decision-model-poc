@@ -6,6 +6,7 @@ import math
 
 import numpy as np
 import pytest
+from sklearn.metrics import roc_auc_score
 
 from src.metrics import (
     INVALID,
@@ -126,7 +127,11 @@ def test_agreement_ci_is_the_seeded_percentile_bootstrap_and_repeats_exactly():
 
 
 def test_a_different_seed_moves_the_interval():
-    assert agreement_ci(ARM_B, REF_B) != agreement_ci(ARM_B, REF_B, seed=1)
+    # 200 items: fine-grained enough that the percentiles depend on which resamples are drawn
+    # (on 10 items both seeds land on the same coarse values).
+    arm = ["a", "b", "a", "c"] * 50
+    ref = ["a", "b", "b", "c", "a"] * 40
+    assert agreement_ci(arm, ref) != agreement_ci(arm, ref, seed=1)
 
 
 def test_perfect_agreement_has_a_degenerate_interval():
@@ -163,6 +168,14 @@ def test_auroc_of_one_minus_confidence_predicting_contested():
     # Doubt = 1 - confidence = .1, .5, .5, .8. Contested doubts .5, .8; unanimous .1, .5.
     # Pairs (pos, neg): (.5,.1) 1, (.5,.5) tie .5, (.8,.1) 1, (.8,.5) 1 -> 3.5 / 4 = .875.
     assert auroc_doubt(CONF_A, FLAG_A) == pytest.approx(0.875)
+
+
+def test_auroc_matches_sklearn_roc_auc_score_with_ties():
+    rng = np.random.default_rng(7)
+    conf = list(np.round(rng.random(60), 1))  # rounding forces many ties
+    flags = list(rng.random(60) < 0.5)
+    expected = roc_auc_score(flags, [1 - c for c in conf])
+    assert auroc_doubt(conf, flags) == pytest.approx(expected)
 
 
 def test_auroc_is_undefined_with_one_class():
