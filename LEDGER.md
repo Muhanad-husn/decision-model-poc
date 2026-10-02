@@ -7,3 +7,4 @@ Balance is the credit remaining after the row.
 | Phase | Dollars | Balance |
 |---|---|---|
 | 0 M0 Setup | 0.00 | 5.00 |
+| 2 M2 Jev smoke (5 Axial items, 27,313 input tokens, run `smoke-axial-20261002`) | 0.0011 | 4.9989 |
