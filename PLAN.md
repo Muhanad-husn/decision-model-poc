@@ -15,7 +15,7 @@ holds; the score column carries the measured figure that proves it.
 | 3 M3 S55 on Axial | done | 360 item-labels, 0 invalid, every call `claude-sonnet-5-5` (run `axial-20261003b`) |
 | 4 M4 CIP export | done | 200 C1 + 200 C2 items, identical across two runs; drop counts in REPORT.md run log; options.yaml frozen by SHA-256 |
 | 5 M5 CIP runs | done | Jev 800 of 800 valid, request hashes identical across runs; S55 1,200 item-labels, 0 invalid, every call `claude-sonnet-5-5`; spend $0.0849 cumulative |
-| 6 M6 Metrics | open | tests green; every figure carries its interval |
+| 6 M6 Metrics | done | 167 tests green; every agreement figure and AUROC in `results/metrics.json` carries its 95% interval; §5.1 contested and pairwise values reproduced from the runs |
 | 7 M7 Report | open | every bar marked pass or fail with its number |
 
 ## Bars (PRD §8, summary)
