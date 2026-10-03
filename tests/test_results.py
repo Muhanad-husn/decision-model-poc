@@ -283,3 +283,14 @@ def test_probabilities_are_read_in_option_order_so_a_tie_breaks_the_same_way_eve
     p1 = results.load_jev(tmp_path / "r1", questions)[0]["x"]["axis"]["probabilities"]
     p2 = results.load_jev(tmp_path / "r2", questions)[0]["x"]["axis"]["probabilities"]
     assert list(p1) == list(p2) == ["a", "b", "c"]
+
+
+def test_determinism_reports_identical_argmax_and_identical_choice():
+    # Jev's returned choice is not always the argmax of its rounded probabilities, so both are
+    # reported. Item 0: probabilities tie in both runs (argmax a both times) but the choice is
+    # a, then b. Item 1: same argmax and same choice. Argmax 2/2, choice 1/2.
+    p = {"x": [{"a": 0.5, "b": 0.5}, {"a": 0.6, "b": 0.4}]}
+    out, per_axis = results.determinism_figures(p, p, {"x": ["a", "a"]}, {"x": ["b", "a"]})
+    assert out["identical_argmax"] == pytest.approx(1.0)
+    assert out["identical_choice"] == pytest.approx(0.5)
+    assert per_axis["x"]["identical_choice"] == pytest.approx(0.5)
