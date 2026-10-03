@@ -54,7 +54,8 @@ that turns out ill-posed is reported as ill-posed in `REPORT.md`, never adjusted
   `sqlite3.connect("file:D:/CIP-data/db/cip.sqlite?mode=ro", uri=True)`, exported once to
   `data/cip/`, and all later work reads the export.
 - `data/`, `runs/` and `.env` are git-ignored. No passage text, CIP text or key is ever
-  committed, pasted into a PR body or quoted in an issue.
+  committed, pasted into a PR body or quoted in an issue. The one exception is the worked
+  examples `PUBLISH.md` quotes under PRD §10 rule 1 (founder ruling, 3 Oct 2026).
 - The one Axial exception (passages may go to Jev for this experiment) is recorded as a
   DEC entry in `D:\axial\docs\DECISIONS.md` through that repository's own issue and PR
   route, at M0.
