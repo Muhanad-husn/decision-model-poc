@@ -2,7 +2,7 @@
 
 Can a small decision model take over the label-picking an LLM does inside an agent
 pipeline, at a fraction of the cost, with probabilities that show the doubt a single LLM
-answer hides? This repository tests that claim, from "The Agent Is the New User"
+answer hides? This repository tests that claim, from [`The Agent Is the New User`](https://muhanadabulhusn.substack.com/p/the-agent-is-the-new-user?r=7htn06&utm_campaign=post-expanded-share&utm_medium=web)
 (1 Oct 2026), on TypeSafe's Jev (`jev-1.13.0`) against Sonnet 5.5 and against the labels
 that already exist, scored by bars frozen before any model call.
 
