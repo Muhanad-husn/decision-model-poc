@@ -268,3 +268,18 @@ def test_committed_results_carry_intervals_and_no_item_text():
                 texts += [row[k] for k in keys if len(row[k]) >= 12]
     bodies = [f.read_text(encoding="utf-8") for f in COMMITTED.iterdir()]
     assert not [t for t in texts if any(t in b for b in bodies)]
+
+
+def test_probabilities_are_read_in_option_order_so_a_tie_breaks_the_same_way_every_run(tmp_path):
+    # Jev returns the probability keys in a different order from run to run. With a top tie,
+    # reading them in response order would make run 1 pick b and run 2 pick a; in the question's
+    # option order both runs pick a.
+    questions = {"axis": Q(["a", "b", "c"])}
+    for name, probs in (("r1", {"b": 0.45, "a": 0.45, "c": 0.1}), ("r2", {"c": 0.1, "a": 0.45, "b": 0.45})):
+        write_jsonl(tmp_path / name / "responses.jsonl", [{
+            "item_id": "x", "request_hash": "h", "status": 200, "latency_ms": 1.0, "attempts": 1,
+            "input_tokens": 1, "parsed": True, "error": None,
+            "response": {"answers": {"axis": {"choice": "a", "confidence": 0.1, "probabilities": probs}}}}])
+    p1 = results.load_jev(tmp_path / "r1", questions)[0]["x"]["axis"]["probabilities"]
+    p2 = results.load_jev(tmp_path / "r2", questions)[0]["x"]["axis"]["probabilities"]
+    assert list(p1) == list(p2) == ["a", "b", "c"]
