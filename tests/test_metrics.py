@@ -10,7 +10,9 @@ from sklearn.metrics import roc_auc_score
 
 from src.metrics import (
     INVALID,
+    JEV_USD_PER_MILLION,
     RESAMPLES,
+    S55_PRICE,
     SEED,
     agreement,
     agreement_ci,
@@ -22,10 +24,16 @@ from src.metrics import (
     coder_agreement,
     coder_agreement_ci,
     contested,
+    cost_per_1000,
     determinism,
     ece,
+    jev_cost_usd,
     kappa,
+    latency_percentiles,
     majority,
+    s55_cost_usd,
+    s55_draw_cost_usd,
+    s55_item_latencies,
     selective_agreement,
 )
 
@@ -290,3 +298,83 @@ def test_determinism_counts_a_failed_item_as_not_identical():
     assert out["identical_argmax"] == pytest.approx(0.5)
     assert out["max_abs_diff"] == pytest.approx(0.0)
     assert math.isfinite(out["max_abs_diff"])
+
+
+# --- slice 14 ------------------------------------------------------------------------------
+
+
+def test_jev_price_is_the_runner_price():
+    from src.jev import USD_PER_MILLION
+
+    assert JEV_USD_PER_MILLION == USD_PER_MILLION == 0.042
+
+
+def test_jev_cost_and_cost_per_1000_items():
+    # 1,000,000 + 500,000 input tokens at $0.042/M = $0.063 for 2 items -> $31.50 per 1,000.
+    usd = jev_cost_usd([1_000_000, 500_000])
+    assert usd == pytest.approx(0.063)
+    assert cost_per_1000(usd, 2) == pytest.approx(31.5)
+
+
+def test_s55_price_constant_carries_its_source():
+    assert S55_PRICE["model"] == "claude-sonnet-5-5"
+    assert S55_PRICE["source"] == "https://platform.claude.com/docs/en/about-claude/pricing"
+    assert S55_PRICE["as_of"] == "2026-10-03"
+    assert S55_PRICE["usd_per_million"] == {
+        "input": 2.00, "cache_write_5m": 2.50, "cache_write_1h": 4.00, "cache_read": 0.20, "output": 10.00,
+    }
+
+
+def test_s55_cost_prices_each_usage_bucket_at_its_list_rate():
+    usage = {
+        "input_tokens": 1_000_000,             # $2.00
+        "output_tokens": 100_000,              # $1.00
+        "cache_read_input_tokens": 1_000_000,  # $0.20
+        "cache_creation_input_tokens": 650_000,
+        "cache_creation": {"ephemeral_5m_input_tokens": 400_000,   # $1.00
+                           "ephemeral_1h_input_tokens": 250_000},  # $1.00
+    }
+    assert s55_cost_usd(usage) == pytest.approx(5.20)
+
+
+def test_s55_cost_reproduces_the_cli_list_cost_of_a_logged_call():
+    # A real C1 batch call: the CLI reported costUSD 0.0122942 on costBasis "list".
+    # 2 x $2 + 171 x $10 + 881 x $0.20 + 2,601 x $4 (1-hour write) = 12,294.2 per M tokens.
+    usage = {"input_tokens": 2, "output_tokens": 171, "cache_read_input_tokens": 881,
+             "cache_creation_input_tokens": 2601,
+             "cache_creation": {"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 2601}}
+    assert s55_cost_usd(usage) == pytest.approx(0.0122942, abs=1e-12)
+
+
+def test_s55_cost_without_a_ttl_split_prices_writes_at_the_5_minute_rate():
+    # The API's default cache TTL is 5 minutes: 1,000,000 written tokens -> $2.50.
+    assert s55_cost_usd({"cache_creation_input_tokens": 1_000_000}) == pytest.approx(2.50)
+
+
+def test_s55_draw_cost_leaves_out_the_calibration_call():
+    calls = [
+        {"kind": "calibration", "ids": [], "usage": {"input_tokens": 1_000_000}},
+        {"kind": "batch", "ids": ["a", "b"], "usage": {"output_tokens": 100_000}},  # $1.00
+        {"kind": "reask", "ids": ["a"], "usage": {"input_tokens": 500_000}},        # $1.00
+    ]
+    assert s55_draw_cost_usd(calls) == pytest.approx(2.00)
+
+
+def test_latency_p50_and_p95_are_numpy_linear_percentiles():
+    # [100, 200, 300, 400]: p50 halfway between 200 and 300 = 250; p95 at rank 0.95 x 3 = 2.85,
+    # 300 + 0.85 x 100 = 385.
+    assert latency_percentiles([400, 100, 300, 200]) == {"n": 4, "p50": 250.0, "p95": pytest.approx(385.0)}
+
+
+def test_s55_latency_is_batch_duration_over_batch_size_per_item():
+    # Calibration is no item. Batch of 4 in 4,000 ms -> 1,000 ms each; batch of 2 in 6,000 ms ->
+    # 3,000 ms each. Per item: [1000, 1000, 1000, 1000, 3000, 3000]; p50 = 1,000 (one value per
+    # batch would give 2,000), p95 at rank 4.75 = 3,000.
+    calls = [
+        {"kind": "calibration", "ids": [], "duration_ms": 900},
+        {"kind": "batch", "ids": list("abcd"), "duration_ms": 4000},
+        {"kind": "batch", "ids": list("ef"), "duration_ms": 6000},
+    ]
+    per_item = s55_item_latencies(calls)
+    assert sorted(per_item) == [1000.0] * 4 + [3000.0] * 2
+    assert latency_percentiles(per_item) == {"n": 6, "p50": 1000.0, "p95": 3000.0}
