@@ -7,6 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -31,8 +32,15 @@ PRD_OPTIONS = {
 }
 
 
-def test_each_question_has_exactly_its_prd_options_with_one_line_each():
-    options = yaml.safe_load(OPTIONS.read_text(encoding="utf-8"))
+@pytest.fixture
+def options_file():
+    if not OPTIONS.exists():
+        pytest.skip("data/cip/ not present on this machine")
+    return OPTIONS
+
+
+def test_each_question_has_exactly_its_prd_options_with_one_line_each(options_file):
+    options = yaml.safe_load(options_file.read_text(encoding="utf-8"))
     assert list(options) == list(PRD_OPTIONS)
     for question, ids in PRD_OPTIONS.items():
         assert list(options[question]) == ids, question
@@ -41,7 +49,12 @@ def test_each_question_has_exactly_its_prd_options_with_one_line_each():
             assert "\n" not in text.strip(), (question, option)
 
 
-def test_options_file_matches_the_committed_hash():
+def test_manifest_names_the_options_file():
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     assert manifest["path"] == "data/cip/options.yaml"
-    assert hashlib.sha256(OPTIONS.read_bytes()).hexdigest() == manifest["sha256"]
+    assert len(manifest["sha256"]) == 64
+
+
+def test_options_file_matches_the_committed_hash(options_file):
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    assert hashlib.sha256(options_file.read_bytes()).hexdigest() == manifest["sha256"]

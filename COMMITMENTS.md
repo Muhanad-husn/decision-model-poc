@@ -8,4 +8,5 @@
 | 2026-10-03 | Merge the M5 CIP runs PR, then build #19 (cost and latency) and #20 (results files) together, which unblocks #21 (REPORT.md). | yes: #32 merged; #19 and #20 built |
 | 2026-10-03 | Merge the M6 results PR, then take the founder's ruling on how B4 is scored (per set or pooled, cache writes as logged or at the 5-minute rate) and build #21 (REPORT.md). | yes: #33 merged; B4 ruled pooled on logged usage; #21 built |
 | 2026-10-03 | Merge the REPORT.md PR, then build #22 (PUBLISH.md under PRD §10, with the grep gate and the founder brief), which closes M7. | yes: #34 merged; #22 built |
-| 2026-10-03 | Merge the PUBLISH.md PR, which closes M7 and the proof of concept; then carry the PRD §10 rule 1 ruling to the master PRD outside the repo. |  |
+| 2026-10-03 | Merge the PUBLISH.md PR, which closes M7 and the proof of concept; then carry the PRD §10 rule 1 ruling to the master PRD outside the repo. | yes: #35 merged; master PRD byte-identical to `specs/PRD.md`, ruling included |
+| 2026-10-03 | Merge the close-out PR (fresh-clone test skips, project marked completed); nothing follows, as the proof of concept is complete. |  |

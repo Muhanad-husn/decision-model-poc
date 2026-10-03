@@ -10,6 +10,8 @@ import yaml
 
 from src import cip
 
+if not cip.OPTIONS.exists():
+    pytest.skip("data/cip/ not present on this machine", allow_module_level=True)
 OPTIONS = yaml.safe_load(cip.OPTIONS.read_text(encoding="utf-8"))
 
 
