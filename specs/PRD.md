@@ -280,7 +280,7 @@ Git-ignore:
 - `runs/`
 - `.env`
 
-No passage text, CIP text or key is ever committed.
+No passage text, CIP text or key is ever committed, except the worked examples `PUBLISH.md` quotes under publishing rule 1.
 
 **This PRD.** The copy in the working directory is `specs/PRD.md`, taken from the master at `D:\The Merge Seat\research\decision-model-poc\PRD.md`.
 
@@ -288,13 +288,15 @@ No passage text, CIP text or key is ever committed.
 
 **Publishing rules**, applying to `PUBLISH.md` and anything quoted from it:
 
-1. Never quote a passage or a source text. Refer to items by count and label only.
+1. Passages and source texts may be quoted where an example needs them; otherwise refer to items by count and label.
+   *Founder ruling 3 Oct 2026, replacing "never quote a passage or a source text": a reader must be able to see what the data is and where the hard cases lie, so worked examples on both sets may quote an item and give its labels, the coders' split and Jev's probabilities. Rules 3 and 4 still hold for anything quoted.*
 2. **Axial:**
    - may be described in full: method, codebook axes and options, metrics, model ids, costs;
    - is never described as validated by human experts. Every reference label is an LLM label; say so in the first paragraph.
 3. **CIP, results only:**
    - May be stated:
      - the classification problem in plain words (task, option list, n, class distribution);
+     - worked examples under rule 1, quoted or paraphrased, with their labels;
      - the metrics;
      - model ids;
      - costs.
