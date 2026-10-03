@@ -7,6 +7,9 @@ holds; the score column carries the measured figure that proves it.
 
 ## Status
 
+**Project completed 2026-10-03.** Every phase below is `done`; the verdict is in
+`REPORT.md` and the publishable write-up in `PUBLISH.md`.
+
 | Phase | State | Score |
 |---|---|---|
 | 0 M0 Setup | done | 130-file manifest committed; bars.json frozen at 9be94c8 |

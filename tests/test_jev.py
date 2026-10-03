@@ -10,6 +10,7 @@ import httpx2
 import pytest
 
 from src import cip, jev
+from src.codebook import CODEBOOK
 from src.codebook import questions as codebook_questions
 from src.jev import (
     CEILING_USD,
@@ -25,6 +26,8 @@ from src.jev import (
     run,
 )
 
+if not CODEBOOK.exists():
+    pytest.skip("data/axial/ not present on this machine", allow_module_level=True)
 QUESTIONS = codebook_questions()
 AXES = ("field", "empirical_scope", "role_in_argument", "claim_type", "theory_school")
 ITEMS = [{"id": f"item-{n}", "text": f"Passage {n}.", "source": "src-x"} for n in range(6)]

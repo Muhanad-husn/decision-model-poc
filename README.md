@@ -6,8 +6,8 @@ answer hides? This repository tests that claim, from "The Agent Is the New User"
 (1 Oct 2026), on TypeSafe's Jev (`jev-1.13.0`) against Sonnet 5.5 and against the labels
 that already exist, scored by bars frozen before any model call.
 
-**Status: closed.** All eight milestones (M0 to M7) are done. **The concept does not
-hold:** Jev passes on cost and on agreement with Axial's production tagger, but misses the
+**Status: completed 3 Oct 2026.** All eight milestones (M0 to M7) are done and no
+further runs are planned. **The concept does not hold:** Jev passes on cost and on agreement with Axial's production tagger, but misses the
 `theory_school` floor, does not give the same answer twice to identical requests, and on
 CIP stays further from Sonnet 5.5 than the bar allows. Every reference label here is an LLM
 label, so "agreement" means agreement with another model, not correctness.
@@ -65,13 +65,13 @@ Python 3.13 with [`uv`](https://docs.astral.sh/uv/).
 ```sh
 uv sync
 cp .env.example .env        # then fill in TYPESAFE_API_KEY
-uv run pytest               # 216 tests
+uv run pytest               # 217 tests here; 143 pass and 18 skip on a fresh clone
 ```
 
 The S55 arm also needs the `claude` CLI logged in to a subscription. `data/`, `runs/` and
 `.env` are git-ignored, so a fresh clone holds the committed results but no passage text or
-raw responses. Tests that read `data/axial/` or the source repositories skip when those are
-absent; `tests/test_cip_options.py` does not, and fails without `data/cip/options.yaml`.
+raw responses. Tests that read `data/axial/`, `data/cip/` or the source repositories skip
+when those are absent.
 
 ## Pipeline
 

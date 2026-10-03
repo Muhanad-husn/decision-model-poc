@@ -6,9 +6,11 @@ from pathlib import Path
 import pytest
 
 from src import cip, s55
-from src.codebook import questions
+from src.codebook import CODEBOOK, questions
 
 ROOT = Path(__file__).resolve().parent.parent
+if not CODEBOOK.exists():
+    pytest.skip("data/axial/ not present on this machine", allow_module_level=True)
 QUESTIONS = questions()
 AXES = list(QUESTIONS)
 SONNET = "claude-sonnet-5-5-20260915"
