@@ -51,8 +51,12 @@ def _blocks(text):
     return [b.strip() for b in re.split(r"\n\s*\n", text) if b.strip()]
 
 
+def _flat(text):
+    return " ".join(text.split())
+
+
 def _first_paragraph(text):
-    return next(b for b in _blocks(text) if not b.startswith("#"))
+    return _flat(next(b for b in _blocks(text) if not b.startswith("#")))
 
 
 def _section(text, prefix):
@@ -147,7 +151,7 @@ def test_cip_section_names_no_prompt_or_agent(pattern):
 
 
 def test_cip_sources_described_as_the_rule_says():
-    assert CIP_SOURCES in _section(_text(), "CIP")
+    assert CIP_SOURCES in _flat(_section(_text(), "CIP"))
 
 
 def test_shortfall_figures_known():
