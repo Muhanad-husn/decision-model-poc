@@ -315,3 +315,60 @@ def test_main_refuses_a_cip_set_when_options_differ_from_the_committed_hash(tmp_
     code = s55.main(["--set", "c2", "--run-id", "t", "--limit", "2"], runner=cli, runs_root=tmp_path / "runs")
     assert code == 2
     assert cli.calls == [] and not (tmp_path / "runs").exists()
+
+
+# Replies that correct themselves (slice 11, C1 draw 1 of run c1-i16-20261003).
+
+
+def test_a_reply_that_corrects_itself_is_read_as_its_final_answer():
+    first = {"1": {"actor_type": "state"}, "2": {"actor_type": "police"}}
+    fixed = {"1": {"actor_type": "state"}, "2": {"actor_type": "private_military"}}
+    text = json.dumps(first) + "\n\nWait, I should correct item 2.\n\n" + json.dumps(fixed)
+    assert s55.parse_labels(text) == fixed
+    assert s55.reply_objects(text) == [first, fixed]
+
+
+def test_a_later_partial_object_overrides_only_the_items_it_names():
+    first = {"1": {"actor_type": "state"}, "2": {"actor_type": "police"}}
+    text = json.dumps(first) + "\nCorrection:\n" + json.dumps({"2": {"actor_type": "ngo"}})
+    assert s55.parse_labels(text) == {"1": {"actor_type": "state"}, "2": {"actor_type": "ngo"}}
+
+
+def test_a_bare_value_is_the_label_only_when_there_is_one_question():
+    one = {"actor_type": cip.questions("c1")["actor_type"]}
+    assert s55.as_labels("state", one) == {"actor_type": "state"}
+    assert s55.as_labels("state", cip_c2()) == "state"  # two questions: still invalid
+    assert s55.invalid_axes(s55.as_labels("state", cip_c2()), cip_c2()) == list(cip_c2())
+
+
+def test_a_self_corrected_batch_is_not_reasked_and_is_counted(tmp_path):
+    first = {axis: next(iter(q["criteria"])) for axis, q in cip_c2().items()}
+    last = {axis: list(q["criteria"])[1] for axis, q in cip_c2().items()}
+
+    def answer(stdin):
+        keys = s55.batch_keys(stdin)
+        reply = json.dumps({k: first for k in keys}) + "\n\nWait, a correction.\n\n"
+        return canned(reply + json.dumps({k: last for k in keys}))
+
+    cli = FakeCLI(calibration(), answer)
+    summary = s55.run_draw(cip_items(3), run_dir=tmp_path, runner=cli, draw=1, ceiling=100,
+                           qs=cip_c2(), task="cip")
+    assert len(cli.calls) == 2
+    rows = [json.loads(line) for line in (tmp_path / "labels.jsonl").read_text().splitlines()]
+    assert all(r["labels"] == last and r["reasked"] is False for r in rows)
+    assert summary["self_corrected"] == 1 and summary["reasked"] == []
+
+
+def test_bare_values_on_a_one_question_task_are_not_reasked_and_are_counted(tmp_path):
+    c1 = cip.questions("c1")
+
+    def answer(stdin):
+        return canned({k: "state" for k in s55.batch_keys(stdin)})
+
+    cli = FakeCLI(calibration(), answer)
+    summary = s55.run_draw(cip_items(3), run_dir=tmp_path, runner=cli, draw=1, ceiling=100,
+                           qs=c1, task="cip")
+    assert len(cli.calls) == 2
+    rows = [json.loads(line) for line in (tmp_path / "labels.jsonl").read_text().splitlines()]
+    assert all(r["labels"] == {"actor_type": "state"} for r in rows)
+    assert summary["bare_values"] == 3 and summary["reasked"] == []
