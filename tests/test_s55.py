@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from src import s55
+from src import cip, s55
 from src.codebook import questions
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -260,3 +260,115 @@ def test_a_draw_refuses_a_run_dir_that_already_holds_calls(tmp_path):
     with pytest.raises(FileExistsError):
         s55.run_draw(items(1), run_dir=tmp_path, runner=cli, draw=1, ceiling=100)
     assert cli.calls == []
+
+
+# CIP sets (slice 11)
+
+def cip_c2():
+    return cip.questions("c2")
+
+
+def cip_items(n):
+    return [{"id": f"claim-{i:03d}", "text": f"Claim: Claim {i}.\n\nPassage: Passage {i}."} for i in range(n)]
+
+
+def test_cip_system_prompt_inlines_options_yaml_not_the_axial_codebook():
+    system = s55.system_prompt(cip_c2(), task="cip")
+    for axis, q in cip_c2().items():
+        assert q["instructions"] in system
+        for option, text in q["criteria"].items():
+            assert f"`{option}`: {text}" in system
+    assert "`claim_type`, `claim_subject_type`" in system
+    assert "scholarly" not in system and "theory_school" not in system
+    assert "NOT been shown any prior automated guess" in system
+
+
+def test_cip_user_prompt_wraps_each_item_and_keys_are_found():
+    batch = cip_items(3)
+    user = s55.user_prompt(batch, task="cip")
+    assert '<item key="2">' in user and "<passage" not in user
+    for item in batch:
+        assert item["text"] in user
+    assert s55.batch_keys(user) == ["1", "2", "3"]
+
+
+def test_cip_draw_labels_every_item_against_the_cip_options(tmp_path):
+    first = {axis: next(iter(q["criteria"])) for axis, q in cip_c2().items()}
+
+    def answer(stdin):
+        return canned({k: first for k in s55.batch_keys(stdin)})
+
+    cli = FakeCLI(calibration(), answer, answer)
+    summary = s55.run_draw(cip_items(12), run_dir=tmp_path, runner=cli, draw=1, ceiling=100,
+                           qs=cip_c2(), task="cip")
+    assert "<item key=" in cli.calls[1]["stdin"]
+    rows = [json.loads(line) for line in (tmp_path / "labels.jsonl").read_text().splitlines()]
+    assert len(rows) == 12 and all(r["labels"] == first for r in rows)
+    assert summary["invalid"] == [] and summary["reasked"] == []
+
+
+def test_main_refuses_a_cip_set_when_options_differ_from_the_committed_hash(tmp_path, monkeypatch):
+    manifest = tmp_path / "cip_options.json"
+    manifest.write_text(json.dumps({"path": "data/cip/options.yaml", "sha256": "0" * 64}))
+    monkeypatch.setattr(cip, "MANIFEST", manifest)
+    cli = FakeCLI()
+    code = s55.main(["--set", "c2", "--run-id", "t", "--limit", "2"], runner=cli, runs_root=tmp_path / "runs")
+    assert code == 2
+    assert cli.calls == [] and not (tmp_path / "runs").exists()
+
+
+# Replies that correct themselves (slice 11, C1 draw 1 of run c1-i16-20261003).
+
+
+def test_a_reply_that_corrects_itself_is_read_as_its_final_answer():
+    first = {"1": {"actor_type": "state"}, "2": {"actor_type": "police"}}
+    fixed = {"1": {"actor_type": "state"}, "2": {"actor_type": "private_military"}}
+    text = json.dumps(first) + "\n\nWait, I should correct item 2.\n\n" + json.dumps(fixed)
+    assert s55.parse_labels(text) == fixed
+    assert s55.reply_objects(text) == [first, fixed]
+
+
+def test_a_later_partial_object_overrides_only_the_items_it_names():
+    first = {"1": {"actor_type": "state"}, "2": {"actor_type": "police"}}
+    text = json.dumps(first) + "\nCorrection:\n" + json.dumps({"2": {"actor_type": "ngo"}})
+    assert s55.parse_labels(text) == {"1": {"actor_type": "state"}, "2": {"actor_type": "ngo"}}
+
+
+def test_a_bare_value_is_the_label_only_when_there_is_one_question():
+    one = {"actor_type": cip.questions("c1")["actor_type"]}
+    assert s55.as_labels("state", one) == {"actor_type": "state"}
+    assert s55.as_labels("state", cip_c2()) == "state"  # two questions: still invalid
+    assert s55.invalid_axes(s55.as_labels("state", cip_c2()), cip_c2()) == list(cip_c2())
+
+
+def test_a_self_corrected_batch_is_not_reasked_and_is_counted(tmp_path):
+    first = {axis: next(iter(q["criteria"])) for axis, q in cip_c2().items()}
+    last = {axis: list(q["criteria"])[1] for axis, q in cip_c2().items()}
+
+    def answer(stdin):
+        keys = s55.batch_keys(stdin)
+        reply = json.dumps({k: first for k in keys}) + "\n\nWait, a correction.\n\n"
+        return canned(reply + json.dumps({k: last for k in keys}))
+
+    cli = FakeCLI(calibration(), answer)
+    summary = s55.run_draw(cip_items(3), run_dir=tmp_path, runner=cli, draw=1, ceiling=100,
+                           qs=cip_c2(), task="cip")
+    assert len(cli.calls) == 2
+    rows = [json.loads(line) for line in (tmp_path / "labels.jsonl").read_text().splitlines()]
+    assert all(r["labels"] == last and r["reasked"] is False for r in rows)
+    assert summary["self_corrected"] == 1 and summary["reasked"] == []
+
+
+def test_bare_values_on_a_one_question_task_are_not_reasked_and_are_counted(tmp_path):
+    c1 = cip.questions("c1")
+
+    def answer(stdin):
+        return canned({k: "state" for k in s55.batch_keys(stdin)})
+
+    cli = FakeCLI(calibration(), answer)
+    summary = s55.run_draw(cip_items(3), run_dir=tmp_path, runner=cli, draw=1, ceiling=100,
+                           qs=c1, task="cip")
+    assert len(cli.calls) == 2
+    rows = [json.loads(line) for line in (tmp_path / "labels.jsonl").read_text().splitlines()]
+    assert all(r["labels"] == {"actor_type": "state"} for r in rows)
+    assert summary["bare_values"] == 3 and summary["reasked"] == []

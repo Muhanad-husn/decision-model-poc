@@ -8,8 +8,13 @@ sending once spend booked by every earlier run under runs/jev/ plus this run pas
 Every response, failures included, lands raw in runs/jev/<run_id>/responses.jsonl with the
 request hash, latency and input tokens, and summary.json closes the run.
 
-Run: uv run python src/jev.py --set axial --limit 5 --run-id smoke-axial-YYYYMMDD
-     uv run python src/jev.py --check <run_id_1> <run_id_2>   (no calls: validity, hash match)
+A CIP set (c1, c2) takes its questions from src/cip.py, which refuses to build them unless
+options.yaml still matches its frozen SHA-256; no key is read and no call made before that.
+An option id missing only its `scope:`/`role:` prefix is that option, the same rule as the S55
+arm, and is counted as prefix_restored.
+
+Run: uv run python src/jev.py --set axial|c1|c2 --limit 5 --run-id smoke-axial-YYYYMMDD
+     uv run python src/jev.py [--set c1] --check <run_id_1> <run_id_2>   (no calls)
 """
 
 import argparse
@@ -30,7 +35,9 @@ ROOT = Path(__file__).resolve().parent.parent
 if __package__ in (None, ""):
     sys.path.insert(0, str(ROOT))
 
+from src import cip  # noqa: E402
 from src.codebook import questions as codebook_questions  # noqa: E402
+from src.codebook import restore_option  # noqa: E402
 
 MODEL = "jev-1.13.0"
 USD_PER_MILLION = 0.042
@@ -41,7 +48,7 @@ BACKOFF_BASE_S = 1.0
 MAX_RETRIES = 6
 TIMEOUT_S = 60.0
 RUNS = ROOT / "runs" / "jev"
-SETS = {"axial": ROOT / "data" / "axial" / "items.jsonl"}
+SETS = {"axial": ROOT / "data" / "axial" / "items.jsonl", **cip.ITEMS}
 
 
 class ParseError(ValueError):
@@ -63,8 +70,10 @@ def request_hash(body):
 
 
 def parse_answers(raw, questions):
-    """{axis: {choice, probabilities, confidence}}. Refuses a missing axis, a choice outside
-    the options, or a probability vector that does not cover exactly the options."""
+    """{axis: {choice, probabilities, confidence, prefix_restored}}. An option id missing only
+    its `scope:`/`role:` prefix is that option, as on the S55 arm, and is flagged. Refuses a
+    missing axis, a choice outside the options, or a probability vector that does not cover
+    exactly the options."""
     answers = raw.get("answers") or {}
     parsed = {}
     for axis, q in questions.items():
@@ -72,13 +81,21 @@ def parse_answers(raw, questions):
         if not isinstance(a, dict):
             raise ParseError(f"{axis}: no answer")
         options = set(q["criteria"])
+        choice, restored = restore_option(a.get("choice"), options)
         probs = a.get("probabilities")
-        if a.get("choice") not in options:
+        if isinstance(probs, dict):
+            probs = {restore_option(o, options)[0]: p for o, p in probs.items()}
+        if choice not in options:
             raise ParseError(f"{axis}: choice {a.get('choice')!r} is not an option")
         if not isinstance(probs, dict) or set(probs) != options:
             raise ParseError(f"{axis}: probabilities do not cover exactly the {len(options)} options")
-        parsed[axis] = {"choice": a["choice"], "probabilities": probs, "confidence": a.get("confidence")}
+        parsed[axis] = {"choice": choice, "probabilities": probs, "confidence": a.get("confidence"),
+                        "prefix_restored": restored}
     return parsed
+
+
+def restored_count(parsed):
+    return sum(a["prefix_restored"] for a in parsed.values())
 
 
 def prior_spend(runs_dir=RUNS):
@@ -124,7 +141,8 @@ def run(items, client, run_dir, *, questions, concurrency=MAX_CONCURRENCY, sleep
     run_dir = Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     lock = threading.Lock()
-    state = {"tokens": 0, "parsed": 0, "sent": 0, "failed": [], "aborted": None, "models": set()}
+    state = {"tokens": 0, "parsed": 0, "sent": 0, "restored": 0, "failed": [], "aborted": None,
+             "models": set()}
 
     def over(spent):
         return prior_usd + spent > ceiling
@@ -139,11 +157,11 @@ def run(items, client, run_dir, *, questions, concurrency=MAX_CONCURRENCY, sleep
             state["sent"] += 1
         body = build_request(item, questions)
         status, raw, latency, attempts, error = _call(client, body, sleep)
-        tokens = 0
+        tokens, restored = 0, 0
         if error is None:
             tokens = ((raw or {}).get("usage") or {}).get("input_tokens") or 0
             try:
-                parse_answers(raw or {}, questions)
+                restored = restored_count(parse_answers(raw or {}, questions))
             except ParseError as e:
                 error = f"parse: {e}"
         row = {
@@ -166,6 +184,7 @@ def run(items, client, run_dir, *, questions, concurrency=MAX_CONCURRENCY, sleep
                 state["models"].add(raw["model"])
             if error is None:
                 state["parsed"] += 1
+                state["restored"] += restored
             else:
                 state["failed"].append({"item_id": item["id"], "status": status, "error": error})
             spent = cost_usd(state["tokens"])
@@ -187,6 +206,7 @@ def run(items, client, run_dir, *, questions, concurrency=MAX_CONCURRENCY, sleep
         "items": len(items),
         "sent": state["sent"],
         "parsed": state["parsed"],
+        "prefix_restored": state["restored"],
         "failures": len(state["failed"]),
         "failed": state["failed"],
         "input_tokens": state["tokens"],
@@ -214,7 +234,7 @@ def check_runs(*run_dirs, questions):
     each item's request hash compared across runs, each item absent from a run listed."""
     runs = {Path(d).name: _rows(d) for d in run_dirs}
     ids = sorted(set().union(*runs.values()))
-    invalid, missing, mismatches, valid = [], [], [], 0
+    invalid, missing, mismatches, valid, restored = [], [], [], 0, 0
     for item_id in ids:
         hashes = set()
         for name, rows in runs.items():
@@ -224,7 +244,7 @@ def check_runs(*run_dirs, questions):
                 continue
             hashes.add(row["request_hash"])
             try:
-                parse_answers(row.get("response") or {}, questions)
+                restored += restored_count(parse_answers(row.get("response") or {}, questions))
                 valid += 1
             except ParseError as e:
                 invalid.append({"run": name, "item_id": item_id, "error": str(e)})
@@ -234,6 +254,7 @@ def check_runs(*run_dirs, questions):
         "runs": list(runs),
         "items": len(ids),
         "valid": valid,
+        "prefix_restored": restored,
         "invalid": invalid,
         "hash_mismatches": mismatches,
         "missing": missing,
@@ -253,15 +274,20 @@ def load_key(env_file=ROOT / ".env"):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("--set", choices=sorted(SETS))
+    p.add_argument("--set", choices=sorted(SETS), help="with --check: the set the runs labelled")
     p.add_argument("--run-id")
     p.add_argument("--limit", type=int, help="first N items only (the smoke run uses 5)")
     p.add_argument("--check", nargs="+", metavar="RUN_ID",
                    help="no calls: validate these runs and compare request hashes item by item")
     args = p.parse_args(argv)
 
+    try:
+        questions = cip.questions(args.set) if args.set in cip.ITEMS else codebook_questions()
+    except cip.OptionsChanged as e:
+        print(f"REFUSED: {e}", file=sys.stderr)
+        return 2
     if args.check:
-        check = check_runs(*(RUNS / r for r in args.check), questions=codebook_questions())
+        check = check_runs(*(RUNS / r for r in args.check), questions=questions)
         print(json.dumps(check, indent=2))
         return 0 if check["ok"] else 1
     if not (args.set and args.run_id):
@@ -276,14 +302,16 @@ def main(argv=None):
         print(f"{run_dir.relative_to(ROOT).as_posix()} already holds responses; pick a new run id.",
               file=sys.stderr)
         return 2
-    with SETS[args.set].open(encoding="utf-8") as f:
-        items = [json.loads(line) for line in f if line.strip()]
-    if args.limit:
-        items = items[: args.limit]
+    if args.set in cip.ITEMS:
+        items = cip.load_items(args.set, limit=args.limit)
+    else:
+        with SETS[args.set].open(encoding="utf-8") as f:
+            items = [json.loads(line) for line in f if line.strip()]
+        items = items[: args.limit] if args.limit else items
 
     prior = prior_spend()
     with make_client(key) as client:
-        summary = run(items, client, run_dir, questions=codebook_questions(), prior_usd=prior)
+        summary = run(items, client, run_dir, questions=questions, prior_usd=prior)
     print(json.dumps({k: v for k, v in summary.items() if k != "failed"}, indent=2))
     for f in summary["failed"]:
         print(f"FAILED {f['item_id']}: {f['status']} {f['error']}", file=sys.stderr)

@@ -1,4 +1,4 @@
-"""S55 arm: label Axial items with Sonnet 5.5 through headless `claude -p` (PRD §6.2).
+"""S55 arm: label Axial or CIP items with Sonnet 5.5 through headless `claude -p` (PRD §6.2).
 
 One draw per process. The blind-axis and head-axis gold-coder prompts are merged into one
 system prompt carrying the slice 02 question text; each call labels a batch of at most 10
@@ -9,9 +9,13 @@ and measures the input tokens the CLI adds around a near-empty prompt; past the 
 draw aborts, and the figure is logged as harness overhead. A resolved model id that is not
 Sonnet 5.5 stops the draw (RULES.md kill line). A label that is an option id missing only its
 `scope:` or `role:` prefix is that option and is counted as restored; an invalid item is
-re-asked once alone, then recorded as `invalid`.
+re-asked once alone, then recorded as `invalid`. A reply that corrects itself (an object, a
+note, a second object) is read as its final answer and counted as self_corrected; on a
+one-question task a bare option id is that label and is counted as bare_values. On a CIP set (c1, c2) the prompt inlines
+options.yaml through src/cip.py, which refuses to build it unless the file still matches its
+frozen SHA-256.
 
-Run: uv run python src/s55.py --run-id <id> --draw <n> [--limit 5]
+Run: uv run python src/s55.py [--set axial|c1|c2] --run-id <id> --draw <n> [--limit 5]
      uv run python src/s55.py --run-id <id> --calibrate   (measure only)
 Writes runs/s55/<run_id>/draw_<n>/ (or calibration/): calls/ (raw CLI output), calls.jsonl,
 labels.jsonl, summary.json. A run dir that already holds calls is refused.
@@ -32,9 +36,10 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.codebook import questions  # noqa: E402
+from src import cip  # noqa: E402
+from src.codebook import questions, restore_option  # noqa: E402
 
-ITEMS = {"axial": ROOT / "data" / "axial" / "items.jsonl"}
+ITEMS = {"axial": ROOT / "data" / "axial" / "items.jsonl", **cip.ITEMS}
 RUNS = ROOT / "runs" / "s55"
 
 MODEL = "claude-sonnet-5-5"
@@ -86,7 +91,31 @@ option id from the codebook, written exactly as listed,
 including its `scope:` or `role:` prefix. Do not echo the passage text back. Reply with
 the JSON object only, no other text."""
 
-PASSAGE = re.compile(r'<passage key="([^"]+)">')
+# The CIP variant of the same prompt (slice 11): options.yaml in place of the codebook, the
+# actor name or claim text plus its passage in place of a scholarly passage.
+CIP_PREAMBLE = """\
+You are an expert coder applying a fixed option list to items drawn from source passages.
+This is a coding task, not an interpretive essay: apply the option list faithfully and
+consistently, the same way a trained second coder would. You have no memory of any other
+conversation; treat this as a standalone task.
+
+The option list follows: for each question, its text and every option id with a one-line
+description. The items arrive in the user turn, each as <item key="...">text</item>: a first
+line naming the actor or the claim to label, then the source passage it comes from.
+
+You have NOT been shown any prior automated guess for these items. Label from your own
+independent reading only. For every item, produce {axes}, one option id each, judging the
+first line in the light of its passage.
+
+Work through every item; do not skip any. Reply with a single JSON object keyed by item key,
+each value an object with exactly these keys: {axes}. Every value is one option id from the
+list, written exactly as listed. Do not echo the text back. Reply with the JSON object only,
+no other text."""
+
+# Per task: the preamble, the heading over the inlined options, the tag around each item.
+PROMPTS = {"axial": (PREAMBLE, "# Codebook", "passage"), "cip": (CIP_PREAMBLE, "# Options", "item")}
+
+PASSAGE = re.compile(r'<(?:passage|item) key="([^"]+)">')
 
 
 class WrongModel(RuntimeError):
@@ -101,19 +130,21 @@ class CLIError(RuntimeError):
     """The CLI exited non-zero or reported an error."""
 
 
-def system_prompt(qs):
-    parts = [PREAMBLE.format(axes=", ".join(f"`{a}`" for a in qs)), "", "# Codebook"]
+def system_prompt(qs, task="axial"):
+    preamble, heading, _ = PROMPTS[task]
+    parts = [preamble.format(axes=", ".join(f"`{a}`" for a in qs)), "", heading]
     for axis, q in qs.items():
         parts += ["", f"## {axis}", f"Question: {q['instructions']}", "Options:"]
         parts += [f"- `{option}`: {text}" for option, text in q["criteria"].items()]
     return "\n".join(parts)
 
 
-def user_prompt(batch):
+def user_prompt(batch, task="axial"):
     if len(batch) > BATCH_SIZE:
         raise ValueError(f"batch of {len(batch)} is over {BATCH_SIZE}")
-    blocks = [f'<passage key="{k}">\n{item["text"]}\n</passage>' for k, item in enumerate(batch, 1)]
-    return "Label these passages.\n\n" + "\n\n".join(blocks) + "\n"
+    tag = PROMPTS[task][2]
+    blocks = [f'<{tag} key="{k}">\n{item["text"]}\n</{tag}>' for k, item in enumerate(batch, 1)]
+    return f"Label these {tag}s.\n\n" + "\n\n".join(blocks) + "\n"
 
 
 def batch_keys(user):
@@ -149,16 +180,39 @@ def subprocess_runner(args, cwd, env, stdin):
     return p.returncode, p.stdout, p.stderr
 
 
+def reply_objects(text):
+    """Every top-level JSON object in a reply, in order. Tolerates a code fence and prose."""
+    decoder, out, i = json.JSONDecoder(), [], 0
+    while (i := text.find("{", i)) >= 0:
+        try:
+            obj, i = decoder.raw_decode(text, i)
+        except json.JSONDecodeError:
+            i += 1
+            continue
+        if isinstance(obj, dict):
+            out.append(obj)
+    return out
+
+
 def parse_labels(text):
-    """The JSON object in a reply, or None. Tolerates a code fence around it."""
-    start, end = text.find("{"), text.rfind("}")
-    if start < 0 or end < start:
+    """The reply's final answer, or None. A reply that writes its object, a correction note,
+    then a second object (C1 draw 1, run c1-i16-20261003) is read as the model's last word on
+    each item: later objects override the items they name."""
+    objects = reply_objects(text)
+    if not objects:
         return None
-    try:
-        obj = json.loads(text[start:end + 1])
-    except json.JSONDecodeError:
-        return None
-    return obj if isinstance(obj, dict) else None
+    merged = {}
+    for obj in objects:
+        merged.update(obj)
+    return merged
+
+
+def as_labels(value, qs):
+    """A bare option id is the label when there is exactly one question; anything else is
+    left as given, so validation still catches it."""
+    if isinstance(value, str) and len(qs) == 1:
+        return {next(iter(qs)): value}
+    return value
 
 
 def restore_prefixes(labels, qs):
@@ -169,12 +223,9 @@ def restore_prefixes(labels, qs):
         return labels, 0
     out, restored = dict(labels), 0
     for axis, q in qs.items():
-        value = out.get(axis)
-        if not isinstance(value, str) or value in q["criteria"]:
-            continue
-        matches = [o for o in q["criteria"] if ":" in o and o.split(":", 1)[1] == value]
-        if len(matches) == 1:
-            out[axis], restored = matches[0], restored + 1
+        if axis in out:
+            out[axis], hit = restore_option(out[axis], q["criteria"])
+            restored += hit
     return out, restored
 
 
@@ -250,7 +301,7 @@ def calibrate(draw):
 
 
 def run_draw(items, *, run_dir, runner=subprocess_runner, draw=1, ceiling=CALIBRATION_CEILING,
-             batch_size=BATCH_SIZE, pause=0, qs=None):
+             batch_size=BATCH_SIZE, pause=0, qs=None, task="axial"):
     qs = qs or questions()
     d = Draw(run_dir, runner, pause)
     overhead = calibrate(d)
@@ -258,21 +309,25 @@ def run_draw(items, *, run_dir, runner=subprocess_runner, draw=1, ceiling=CALIBR
         raise CalibrationExceeded(f"no calibration ceiling set (measured {overhead}); set it from the smoke run")
     if overhead > ceiling:
         raise CalibrationExceeded(f"calibration input tokens {overhead} over the ceiling {ceiling}")
-    system = system_prompt(qs)
-    out, reasked, restored = {}, set(), 0
+    system = system_prompt(qs, task)
+    out, reasked, restored, corrected, bare = {}, set(), 0, 0, 0
     for batch in batches(items, batch_size):
-        user = user_prompt(batch)
+        user = user_prompt(batch, task)
         reply, _ = d.call("batch", system, user, [i["id"] for i in batch])
-        labels = parse_labels(reply.get("result") or "") or {}
+        text = reply.get("result") or ""
+        corrected += len(reply_objects(text)) > 1
+        labels = parse_labels(text) or {}
         for key, item in zip(batch_keys(user), batch):
-            got, n = restore_prefixes(labels.get(key), qs)
+            value = labels.get(key)
+            bare += isinstance(value, str) and len(qs) == 1
+            got, n = restore_prefixes(as_labels(value, qs), qs)
             restored += n
             if invalid_axes(got, qs):
                 reasked.add(item["id"])
-                lone = user_prompt([item])
+                lone = user_prompt([item], task)
                 again, _ = d.call("reask", system, lone, [item["id"]])
-                got, n = restore_prefixes(
-                    (parse_labels(again.get("result") or "") or {}).get(batch_keys(lone)[0]), qs)
+                got, n = restore_prefixes(as_labels(
+                    (parse_labels(again.get("result") or "") or {}).get(batch_keys(lone)[0]), qs), qs)
                 restored += n
                 bad = invalid_axes(got, qs)
                 got = {axis: "invalid" if axis in bad else got[axis] for axis in qs}
@@ -287,7 +342,8 @@ def run_draw(items, *, run_dir, runner=subprocess_runner, draw=1, ceiling=CALIBR
         "draw": draw, "items": len(items), "calls": d.n, "models": sorted(d.models),
         "harness_overhead_input_tokens": overhead, "calibration_ceiling": ceiling,
         "usage": d.usage, "duration_ms": d.duration_ms,
-        "reasked": sorted(reasked), "prefix_restored": restored, "invalid": invalid,
+        "reasked": sorted(reasked), "prefix_restored": restored, "self_corrected": corrected,
+        "bare_values": bare, "invalid": invalid,
     }
     (d.dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     return summary
@@ -318,6 +374,15 @@ def main(args=None, runner=None, runs_root=RUNS):
     p.add_argument("--calibrate", action="store_true", help="measure harness overhead only")
     a = p.parse_args(args)
     run_dir = Path(runs_root) / a.run_id / ("calibration" if a.calibrate else f"draw_{a.draw}")
+    task = "axial" if a.set == "axial" else "cip"
+    try:
+        if task == "cip":
+            qs, items = cip.questions(a.set), cip.load_items(a.set, limit=a.limit)
+        else:
+            qs, items = questions(), load_items(ITEMS[a.set], a.limit)
+    except cip.OptionsChanged as e:
+        print(f"REFUSED: {e}", file=sys.stderr)
+        return 2
     version = cli_version() if runner is None else None
     runner = runner or subprocess_runner
     try:
@@ -327,8 +392,8 @@ def main(args=None, runner=None, runs_root=RUNS):
             print(json.dumps({"harness_overhead_input_tokens": overhead, "models": sorted(d.models),
                               "cli": version}))
             return 0
-        summary = run_draw(load_items(ITEMS[a.set], a.limit), run_dir=run_dir, runner=runner,
-                           draw=a.draw, batch_size=a.batch_size, pause=a.pause)
+        summary = run_draw(items, run_dir=run_dir, runner=runner, draw=a.draw,
+                           batch_size=a.batch_size, pause=a.pause, qs=qs, task=task)
     except WrongModel as e:
         print(f"KILL LINE: {e}", file=sys.stderr)
         return EXIT_WRONG_MODEL
