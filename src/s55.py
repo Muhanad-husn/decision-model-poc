@@ -9,7 +9,9 @@ and measures the input tokens the CLI adds around a near-empty prompt; past the 
 draw aborts, and the figure is logged as harness overhead. A resolved model id that is not
 Sonnet 5.5 stops the draw (RULES.md kill line). A label that is an option id missing only its
 `scope:` or `role:` prefix is that option and is counted as restored; an invalid item is
-re-asked once alone, then recorded as `invalid`. On a CIP set (c1, c2) the prompt inlines
+re-asked once alone, then recorded as `invalid`. A reply that corrects itself (an object, a
+note, a second object) is read as its final answer and counted as self_corrected; on a
+one-question task a bare option id is that label and is counted as bare_values. On a CIP set (c1, c2) the prompt inlines
 options.yaml through src/cip.py, which refuses to build it unless the file still matches its
 frozen SHA-256.
 
@@ -178,16 +180,39 @@ def subprocess_runner(args, cwd, env, stdin):
     return p.returncode, p.stdout, p.stderr
 
 
+def reply_objects(text):
+    """Every top-level JSON object in a reply, in order. Tolerates a code fence and prose."""
+    decoder, out, i = json.JSONDecoder(), [], 0
+    while (i := text.find("{", i)) >= 0:
+        try:
+            obj, i = decoder.raw_decode(text, i)
+        except json.JSONDecodeError:
+            i += 1
+            continue
+        if isinstance(obj, dict):
+            out.append(obj)
+    return out
+
+
 def parse_labels(text):
-    """The JSON object in a reply, or None. Tolerates a code fence around it."""
-    start, end = text.find("{"), text.rfind("}")
-    if start < 0 or end < start:
+    """The reply's final answer, or None. A reply that writes its object, a correction note,
+    then a second object (C1 draw 1, run c1-i16-20261003) is read as the model's last word on
+    each item: later objects override the items they name."""
+    objects = reply_objects(text)
+    if not objects:
         return None
-    try:
-        obj = json.loads(text[start:end + 1])
-    except json.JSONDecodeError:
-        return None
-    return obj if isinstance(obj, dict) else None
+    merged = {}
+    for obj in objects:
+        merged.update(obj)
+    return merged
+
+
+def as_labels(value, qs):
+    """A bare option id is the label when there is exactly one question; anything else is
+    left as given, so validation still catches it."""
+    if isinstance(value, str) and len(qs) == 1:
+        return {next(iter(qs)): value}
+    return value
 
 
 def restore_prefixes(labels, qs):
@@ -285,20 +310,24 @@ def run_draw(items, *, run_dir, runner=subprocess_runner, draw=1, ceiling=CALIBR
     if overhead > ceiling:
         raise CalibrationExceeded(f"calibration input tokens {overhead} over the ceiling {ceiling}")
     system = system_prompt(qs, task)
-    out, reasked, restored = {}, set(), 0
+    out, reasked, restored, corrected, bare = {}, set(), 0, 0, 0
     for batch in batches(items, batch_size):
         user = user_prompt(batch, task)
         reply, _ = d.call("batch", system, user, [i["id"] for i in batch])
-        labels = parse_labels(reply.get("result") or "") or {}
+        text = reply.get("result") or ""
+        corrected += len(reply_objects(text)) > 1
+        labels = parse_labels(text) or {}
         for key, item in zip(batch_keys(user), batch):
-            got, n = restore_prefixes(labels.get(key), qs)
+            value = labels.get(key)
+            bare += isinstance(value, str) and len(qs) == 1
+            got, n = restore_prefixes(as_labels(value, qs), qs)
             restored += n
             if invalid_axes(got, qs):
                 reasked.add(item["id"])
                 lone = user_prompt([item], task)
                 again, _ = d.call("reask", system, lone, [item["id"]])
-                got, n = restore_prefixes(
-                    (parse_labels(again.get("result") or "") or {}).get(batch_keys(lone)[0]), qs)
+                got, n = restore_prefixes(as_labels(
+                    (parse_labels(again.get("result") or "") or {}).get(batch_keys(lone)[0]), qs), qs)
                 restored += n
                 bad = invalid_axes(got, qs)
                 got = {axis: "invalid" if axis in bad else got[axis] for axis in qs}
@@ -313,7 +342,8 @@ def run_draw(items, *, run_dir, runner=subprocess_runner, draw=1, ceiling=CALIBR
         "draw": draw, "items": len(items), "calls": d.n, "models": sorted(d.models),
         "harness_overhead_input_tokens": overhead, "calibration_ceiling": ceiling,
         "usage": d.usage, "duration_ms": d.duration_ms,
-        "reasked": sorted(reasked), "prefix_restored": restored, "invalid": invalid,
+        "reasked": sorted(reasked), "prefix_restored": restored, "self_corrected": corrected,
+        "bare_values": bare, "invalid": invalid,
     }
     (d.dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     return summary
