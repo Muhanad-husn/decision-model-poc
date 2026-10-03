@@ -1,0 +1,1336 @@
+{
+  "generated_by": "src/results.py",
+  "bootstrap": {
+    "resamples": 2000,
+    "seed": 20261002,
+    "interval": "95% percentile"
+  },
+  "runs": {
+    "axial": {
+      "jev": [
+        "axial-run1-20261003",
+        "axial-run2-20261003"
+      ],
+      "s55": "axial-20261003b"
+    },
+    "c1": {
+      "jev": [
+        "c1-run1-i15-20261003",
+        "c1-run2-i15-20261003"
+      ],
+      "s55": "c1-i16-20261003b"
+    },
+    "c2": {
+      "jev": [
+        "c2-run1-i15-20261003",
+        "c2-run2-i15-20261003"
+      ],
+      "s55": "c2-i16-20261003"
+    }
+  },
+  "prices": {
+    "jev_usd_per_million_input": 0.042,
+    "s55": {
+      "model": "claude-sonnet-5-5",
+      "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "as_of": "2026-10-03",
+      "usd_per_million": {
+        "input": 2.0,
+        "cache_write_5m": 2.5,
+        "cache_write_1h": 4.0,
+        "cache_read": 0.2,
+        "output": 10.0
+      }
+    }
+  },
+  "sets": {
+    "axial": {
+      "items": 120,
+      "reference": "S5-REF",
+      "axes": {
+        "field": {
+          "vs_reference": {
+            "JEV": {
+              "n": 120,
+              "agreement": 0.816667,
+              "ci": [
+                0.75,
+                0.883333
+              ],
+              "kappa": 0.694939
+            },
+            "PROD-A": {
+              "n": 120,
+              "agreement": 0.783333,
+              "ci": [
+                0.708333,
+                0.85
+              ],
+              "kappa": 0.61746
+            },
+            "S55-maj": {
+              "n": 120,
+              "agreement": 0.883333,
+              "ci": [
+                0.825,
+                0.933333
+              ],
+              "kappa": 0.801957
+            },
+            "S55-draw": {
+              "n": 120,
+              "agreement": 0.880556,
+              "ci": [
+                0.827778,
+                0.930556
+              ],
+              "kappa": 0.798413
+            }
+          },
+          "selective": {
+            "JEV": [
+              {
+                "coverage": 1.0,
+                "kept": 120,
+                "threshold": null,
+                "agreement": 0.816667,
+                "ci": [
+                  0.75,
+                  0.883333
+                ]
+              },
+              {
+                "coverage": 0.9,
+                "kept": 108,
+                "threshold": 0.41,
+                "agreement": 0.888889,
+                "ci": [
+                  0.814815,
+                  0.944444
+                ]
+              },
+              {
+                "coverage": 0.8,
+                "kept": 96,
+                "threshold": 0.58,
+                "agreement": 0.90625,
+                "ci": [
+                  0.84375,
+                  0.979167
+                ]
+              },
+              {
+                "coverage": 0.7,
+                "kept": 84,
+                "threshold": 0.68,
+                "agreement": 0.940476,
+                "ci": [
+                  0.89256,
+                  0.988095
+                ]
+              }
+            ]
+          },
+          "calibration": {
+            "brier": 0.22483,
+            "ece": 0.074333
+          },
+          "determinism": {
+            "identical_argmax": 0.991667,
+            "max_abs_diff": 0.09,
+            "identical_choice": 0.983333
+          }
+        },
+        "empirical_scope": {
+          "vs_reference": {
+            "JEV": {
+              "n": 120,
+              "agreement": 0.791667,
+              "ci": [
+                0.716667,
+                0.866667
+              ],
+              "kappa": 0.718521
+            },
+            "PROD-A": {
+              "n": 120,
+              "agreement": 0.75,
+              "ci": [
+                0.675,
+                0.825
+              ],
+              "kappa": 0.632428
+            },
+            "S55-maj": {
+              "n": 120,
+              "agreement": 0.716667,
+              "ci": [
+                0.633333,
+                0.8
+              ],
+              "kappa": 0.629226
+            },
+            "S55-draw": {
+              "n": 120,
+              "agreement": 0.727778,
+              "ci": [
+                0.652778,
+                0.8
+              ],
+              "kappa": 0.641024
+            }
+          },
+          "selective": {
+            "JEV": [
+              {
+                "coverage": 1.0,
+                "kept": 120,
+                "threshold": null,
+                "agreement": 0.791667,
+                "ci": [
+                  0.716667,
+                  0.866667
+                ]
+              },
+              {
+                "coverage": 0.9,
+                "kept": 108,
+                "threshold": 0.41,
+                "agreement": 0.814815,
+                "ci": [
+                  0.740741,
+                  0.898148
+                ]
+              },
+              {
+                "coverage": 0.8,
+                "kept": 96,
+                "threshold": 0.58,
+                "agreement": 0.833333,
+                "ci": [
+                  0.760417,
+                  0.916667
+                ]
+              },
+              {
+                "coverage": 0.7,
+                "kept": 84,
+                "threshold": 0.72,
+                "agreement": 0.892857,
+                "ci": [
+                  0.809524,
+                  0.964286
+                ]
+              }
+            ]
+          },
+          "calibration": {
+            "brier": 0.303333,
+            "ece": 0.093083
+          },
+          "determinism": {
+            "identical_argmax": 0.991667,
+            "max_abs_diff": 0.09,
+            "identical_choice": 0.991667
+          }
+        },
+        "role_in_argument": {
+          "vs_reference": {
+            "JEV": {
+              "n": 120,
+              "agreement": 0.591667,
+              "ci": [
+                0.5,
+                0.675
+              ],
+              "kappa": 0.461242
+            },
+            "PROD-A": {
+              "n": 120,
+              "agreement": 0.575,
+              "ci": [
+                0.491667,
+                0.666667
+              ],
+              "kappa": 0.414242
+            },
+            "S55-maj": {
+              "n": 120,
+              "agreement": 0.733333,
+              "ci": [
+                0.65,
+                0.808333
+              ],
+              "kappa": 0.633693
+            },
+            "S55-draw": {
+              "n": 120,
+              "agreement": 0.733333,
+              "ci": [
+                0.658333,
+                0.805556
+              ],
+              "kappa": 0.633305
+            }
+          },
+          "selective": {
+            "JEV": [
+              {
+                "coverage": 1.0,
+                "kept": 120,
+                "threshold": null,
+                "agreement": 0.591667,
+                "ci": [
+                  0.5,
+                  0.675
+                ]
+              },
+              {
+                "coverage": 0.9,
+                "kept": 108,
+                "threshold": 0.35,
+                "agreement": 0.62037,
+                "ci": [
+                  0.518519,
+                  0.703704
+                ]
+              },
+              {
+                "coverage": 0.8,
+                "kept": 96,
+                "threshold": 0.45,
+                "agreement": 0.645833,
+                "ci": [
+                  0.541667,
+                  0.739583
+                ]
+              },
+              {
+                "coverage": 0.7,
+                "kept": 84,
+                "threshold": 0.52,
+                "agreement": 0.654762,
+                "ci": [
+                  0.559524,
+                  0.761905
+                ]
+              }
+            ]
+          },
+          "calibration": {
+            "brier": 0.56216,
+            "ece": 0.12425
+          },
+          "determinism": {
+            "identical_argmax": 0.966667,
+            "max_abs_diff": 0.07,
+            "identical_choice": 0.958333
+          }
+        },
+        "claim_type": {
+          "vs_reference": {
+            "JEV": {
+              "n": 117,
+              "agreement": 0.632479,
+              "ci": [
+                0.546141,
+                0.715517
+              ],
+              "kappa": 0.604326
+            },
+            "PROD-A": {
+              "n": 117,
+              "agreement": 0.487179,
+              "ci": [
+                0.396512,
+                0.578947
+              ],
+              "kappa": 0.449066
+            },
+            "S55-maj": {
+              "n": 117,
+              "agreement": 0.683761,
+              "ci": [
+                0.596639,
+                0.762712
+              ],
+              "kappa": 0.662482
+            },
+            "S55-draw": {
+              "n": 117,
+              "agreement": 0.695157,
+              "ci": [
+                0.615819,
+                0.769236
+              ],
+              "kappa": 0.674433
+            }
+          },
+          "coder_agreement": {
+            "draws": 3,
+            "draws_pairwise": {
+              "agreement": 0.841667,
+              "ci": [
+                0.786111,
+                0.891667
+              ]
+            },
+            "arms": {
+              "JEV": {
+                "agreement": 0.625,
+                "ci": [
+                  0.544444,
+                  0.7
+                ]
+              },
+              "PROD-A": {
+                "agreement": 0.475,
+                "ci": [
+                  0.388889,
+                  0.558333
+                ]
+              },
+              "S55-maj": {
+                "agreement": 0.675,
+                "ci": [
+                  0.594444,
+                  0.744514
+                ]
+              }
+            }
+          },
+          "doubt": {
+            "contested": 27,
+            "unanimous": 93,
+            "auroc": 0.697531,
+            "ci": [
+              0.590799,
+              0.796017
+            ]
+          },
+          "selective": {
+            "JEV": [
+              {
+                "coverage": 1.0,
+                "kept": 117,
+                "threshold": null,
+                "agreement": 0.632479,
+                "ci": [
+                  0.546141,
+                  0.715517
+                ]
+              },
+              {
+                "coverage": 0.9,
+                "kept": 106,
+                "threshold": 0.39,
+                "agreement": 0.660377,
+                "ci": [
+                  0.567276,
+                  0.75
+                ]
+              },
+              {
+                "coverage": 0.8,
+                "kept": 94,
+                "threshold": 0.5,
+                "agreement": 0.680851,
+                "ci": [
+                  0.586957,
+                  0.778947
+                ]
+              },
+              {
+                "coverage": 0.7,
+                "kept": 82,
+                "threshold": 0.58,
+                "agreement": 0.707317,
+                "ci": [
+                  0.609756,
+                  0.819277
+                ]
+              }
+            ]
+          },
+          "best_of_3": {
+            "S5-REF": {
+              "coverage": 0.794872,
+              "agreement": 1.0,
+              "ci": [
+                1.0,
+                1.0
+              ]
+            }
+          },
+          "calibration": {
+            "brier": 0.532273,
+            "ece": 0.110598
+          },
+          "determinism": {
+            "identical_argmax": 0.975,
+            "max_abs_diff": 0.09,
+            "identical_choice": 0.975
+          }
+        },
+        "theory_school": {
+          "vs_reference": {
+            "JEV": {
+              "n": 105,
+              "agreement": 0.485714,
+              "ci": [
+                0.390476,
+                0.582524
+              ],
+              "kappa": 0.445314
+            },
+            "S55-maj": {
+              "n": 105,
+              "agreement": 0.628571,
+              "ci": [
+                0.535336,
+                0.717172
+              ],
+              "kappa": 0.580172
+            },
+            "S55-draw": {
+              "n": 105,
+              "agreement": 0.609524,
+              "ci": [
+                0.52422,
+                0.69232
+              ],
+              "kappa": 0.558054
+            }
+          },
+          "coder_agreement": {
+            "draws": 3,
+            "draws_pairwise": {
+              "agreement": 0.619444,
+              "ci": [
+                0.552778,
+                0.686111
+              ]
+            },
+            "arms": {
+              "JEV": {
+                "agreement": 0.441667,
+                "ci": [
+                  0.366667,
+                  0.519444
+                ]
+              },
+              "S55-maj": {
+                "agreement": 0.555556,
+                "ci": [
+                  0.483333,
+                  0.625
+                ]
+              }
+            }
+          },
+          "doubt": {
+            "contested": 61,
+            "unanimous": 59,
+            "auroc": 0.61656,
+            "ci": [
+              0.511966,
+              0.717034
+            ]
+          },
+          "selective": {
+            "JEV": [
+              {
+                "coverage": 1.0,
+                "kept": 105,
+                "threshold": null,
+                "agreement": 0.485714,
+                "ci": [
+                  0.390476,
+                  0.582524
+                ]
+              },
+              {
+                "coverage": 0.9,
+                "kept": 95,
+                "threshold": 0.28,
+                "agreement": 0.536842,
+                "ci": [
+                  0.431579,
+                  0.642124
+                ]
+              },
+              {
+                "coverage": 0.8,
+                "kept": 84,
+                "threshold": 0.34,
+                "agreement": 0.571429,
+                "ci": [
+                  0.464286,
+                  0.677798
+                ]
+              },
+              {
+                "coverage": 0.7,
+                "kept": 74,
+                "threshold": 0.38,
+                "agreement": 0.594595,
+                "ci": [
+                  0.480519,
+                  0.708333
+                ]
+              }
+            ]
+          },
+          "best_of_3": {
+            "S5-REF": {
+              "coverage": 0.561905,
+              "agreement": 1.0,
+              "ci": [
+                1.0,
+                1.0
+              ]
+            }
+          },
+          "calibration": {
+            "brier": 0.611875,
+            "ece": 0.082571
+          },
+          "determinism": {
+            "identical_argmax": 0.958333,
+            "max_abs_diff": 0.09,
+            "identical_choice": 0.958333
+          }
+        }
+      },
+      "determinism": {
+        "items": 120,
+        "identical_argmax": 0.891667,
+        "identical_choice": 0.883333,
+        "max_abs_diff": 0.09
+      }
+    },
+    "c1": {
+      "items": 200,
+      "reference": "S55 draw majority",
+      "axes": {
+        "actor_type": {
+          "vs_reference": {
+            "JEV": {
+              "n": 197,
+              "agreement": 0.715736,
+              "ci": [
+                0.651509,
+                0.777778
+              ],
+              "kappa": 0.692711
+            },
+            "PROD-C": {
+              "n": 197,
+              "agreement": 0.751269,
+              "ci": [
+                0.690355,
+                0.812183
+              ],
+              "kappa": 0.733975
+            }
+          },
+          "coder_agreement": {
+            "draws": 3,
+            "draws_pairwise": {
+              "agreement": 0.871667,
+              "ci": [
+                0.833333,
+                0.908333
+              ]
+            },
+            "arms": {
+              "JEV": {
+                "agreement": 0.711667,
+                "ci": [
+                  0.65,
+                  0.768333
+                ]
+              },
+              "PROD-C": {
+                "agreement": 0.735,
+                "ci": [
+                  0.675,
+                  0.791667
+                ]
+              }
+            }
+          },
+          "doubt": {
+            "contested": 37,
+            "unanimous": 163,
+            "auroc": 0.732631,
+            "ci": [
+              0.650139,
+              0.804456
+            ]
+          },
+          "selective": {
+            "JEV": [
+              {
+                "coverage": 1.0,
+                "kept": 197,
+                "threshold": null,
+                "agreement": 0.715736,
+                "ci": [
+                  0.651509,
+                  0.777778
+                ]
+              },
+              {
+                "coverage": 0.9,
+                "kept": 178,
+                "threshold": 0.45,
+                "agreement": 0.769663,
+                "ci": [
+                  0.700565,
+                  0.837989
+                ]
+              },
+              {
+                "coverage": 0.8,
+                "kept": 158,
+                "threshold": 0.57,
+                "agreement": 0.810127,
+                "ci": [
+                  0.735807,
+                  0.875041
+                ]
+              },
+              {
+                "coverage": 0.7,
+                "kept": 138,
+                "threshold": 0.72,
+                "agreement": 0.876812,
+                "ci": [
+                  0.792857,
+                  0.927007
+                ]
+              }
+            ]
+          },
+          "calibration": {
+            "brier": 0.392707,
+            "ece": 0.102234
+          },
+          "determinism": {
+            "identical_argmax": 0.985,
+            "max_abs_diff": 0.19,
+            "identical_choice": 0.985
+          }
+        }
+      },
+      "determinism": {
+        "items": 200,
+        "identical_argmax": 0.985,
+        "identical_choice": 0.985,
+        "max_abs_diff": 0.19
+      }
+    },
+    "c2": {
+      "items": 200,
+      "reference": "S55 draw majority",
+      "axes": {
+        "claim_type": {
+          "vs_reference": {
+            "JEV": {
+              "n": 198,
+              "agreement": 0.60101,
+              "ci": [
+                0.530605,
+                0.665
+              ],
+              "kappa": 0.527974
+            },
+            "PROD-C": {
+              "n": 198,
+              "agreement": 0.641414,
+              "ci": [
+                0.573604,
+                0.705
+              ],
+              "kappa": 0.590695
+            }
+          },
+          "coder_agreement": {
+            "draws": 3,
+            "draws_pairwise": {
+              "agreement": 0.89,
+              "ci": [
+                0.853333,
+                0.923333
+              ]
+            },
+            "arms": {
+              "JEV": {
+                "agreement": 0.596667,
+                "ci": [
+                  0.528333,
+                  0.658333
+                ]
+              },
+              "PROD-C": {
+                "agreement": 0.633333,
+                "ci": [
+                  0.568333,
+                  0.695
+                ]
+              }
+            }
+          },
+          "doubt": {
+            "contested": 32,
+            "unanimous": 168,
+            "auroc": 0.526042,
+            "ci": [
+              0.420113,
+              0.63591
+            ]
+          },
+          "selective": {
+            "JEV": [
+              {
+                "coverage": 1.0,
+                "kept": 198,
+                "threshold": null,
+                "agreement": 0.60101,
+                "ci": [
+                  0.530605,
+                  0.665
+                ]
+              },
+              {
+                "coverage": 0.9,
+                "kept": 179,
+                "threshold": 0.39,
+                "agreement": 0.625698,
+                "ci": [
+                  0.545455,
+                  0.691011
+                ]
+              },
+              {
+                "coverage": 0.8,
+                "kept": 159,
+                "threshold": 0.44,
+                "agreement": 0.641509,
+                "ci": [
+                  0.563271,
+                  0.71875
+                ]
+              },
+              {
+                "coverage": 0.7,
+                "kept": 139,
+                "threshold": 0.51,
+                "agreement": 0.676259,
+                "ci": [
+                  0.594169,
+                  0.75
+                ]
+              }
+            ]
+          },
+          "calibration": {
+            "brier": 0.563788,
+            "ece": 0.129848
+          },
+          "determinism": {
+            "identical_argmax": 0.95,
+            "max_abs_diff": 0.11,
+            "identical_choice": 0.945
+          }
+        },
+        "claim_subject_type": {
+          "vs_reference": {
+            "JEV": {
+              "n": 200,
+              "agreement": 0.69,
+              "ci": [
+                0.62,
+                0.75
+              ],
+              "kappa": 0.573032
+            },
+            "PROD-C": {
+              "n": 200,
+              "agreement": 0.735,
+              "ci": [
+                0.67,
+                0.795
+              ],
+              "kappa": 0.624087
+            }
+          },
+          "coder_agreement": {
+            "draws": 3,
+            "draws_pairwise": {
+              "agreement": 0.936667,
+              "ci": [
+                0.906667,
+                0.963333
+              ]
+            },
+            "arms": {
+              "JEV": {
+                "agreement": 0.68,
+                "ci": [
+                  0.616625,
+                  0.74
+                ]
+              },
+              "PROD-C": {
+                "agreement": 0.721667,
+                "ci": [
+                  0.658333,
+                  0.781667
+                ]
+              }
+            }
+          },
+          "doubt": {
+            "contested": 19,
+            "unanimous": 181,
+            "auroc": 0.707909,
+            "ci": [
+              0.578381,
+              0.819307
+            ]
+          },
+          "selective": {
+            "JEV": [
+              {
+                "coverage": 1.0,
+                "kept": 200,
+                "threshold": null,
+                "agreement": 0.69,
+                "ci": [
+                  0.62,
+                  0.75
+                ]
+              },
+              {
+                "coverage": 0.9,
+                "kept": 180,
+                "threshold": 0.43,
+                "agreement": 0.716667,
+                "ci": [
+                  0.65,
+                  0.783333
+                ]
+              },
+              {
+                "coverage": 0.8,
+                "kept": 160,
+                "threshold": 0.53,
+                "agreement": 0.75625,
+                "ci": [
+                  0.6875,
+                  0.81875
+                ]
+              },
+              {
+                "coverage": 0.7,
+                "kept": 140,
+                "threshold": 0.59,
+                "agreement": 0.8,
+                "ci": [
+                  0.714286,
+                  0.857143
+                ]
+              }
+            ]
+          },
+          "calibration": {
+            "brier": 0.448577,
+            "ece": 0.1018
+          },
+          "determinism": {
+            "identical_argmax": 0.975,
+            "max_abs_diff": 0.14,
+            "identical_choice": 0.975
+          }
+        }
+      },
+      "determinism": {
+        "items": 200,
+        "identical_argmax": 0.925,
+        "identical_choice": 0.92,
+        "max_abs_diff": 0.14
+      }
+    }
+  },
+  "cost_latency": {
+    "axial": {
+      "JEV": {
+        "items": 120,
+        "calls": 120,
+        "cost_usd": 0.027403,
+        "cost_per_1000_usd": 0.228357,
+        "latency_ms": {
+          "n": 240,
+          "p50": 325.15,
+          "p95": 381.065
+        },
+        "scopes": {
+          "run1": {
+            "items": 120,
+            "calls": 120,
+            "cost_usd": 0.027403,
+            "cost_per_1000_usd": 0.228357,
+            "latency_ms": {
+              "n": 120,
+              "p50": 321.65,
+              "p95": 382.385
+            }
+          },
+          "run2": {
+            "items": 120,
+            "calls": 120,
+            "cost_usd": 0.027403,
+            "cost_per_1000_usd": 0.228357,
+            "latency_ms": {
+              "n": 120,
+              "p50": 328.2,
+              "p95": 378.625
+            }
+          },
+          "single": {
+            "items": 120,
+            "calls": 120,
+            "cost_usd": 0.027403,
+            "cost_per_1000_usd": 0.228357,
+            "latency_ms": {
+              "n": 240,
+              "p50": 325.15,
+              "p95": 381.065
+            }
+          }
+        }
+      },
+      "S55": {
+        "items": 120,
+        "calls": 12,
+        "cost_usd": 0.349273,
+        "cost_per_1000_usd": 2.91061,
+        "latency_ms": {
+          "n": 360,
+          "p50": 368.5,
+          "p95": 491.7
+        },
+        "cli_reported_usd": 0.349273,
+        "scopes": {
+          "draw1": {
+            "items": 120,
+            "calls": 12,
+            "cost_usd": 0.349071,
+            "cost_per_1000_usd": 2.908927,
+            "latency_ms": {
+              "n": 120,
+              "p50": 365.15,
+              "p95": 495.0
+            },
+            "cli_reported_usd": 0.349071,
+            "harness_overhead_input_tokens": 462
+          },
+          "draw2": {
+            "items": 120,
+            "calls": 12,
+            "cost_usd": 0.350213,
+            "cost_per_1000_usd": 2.918443,
+            "latency_ms": {
+              "n": 120,
+              "p50": 372.3,
+              "p95": 448.7
+            },
+            "cli_reported_usd": 0.350213,
+            "harness_overhead_input_tokens": 460
+          },
+          "draw3": {
+            "items": 120,
+            "calls": 12,
+            "cost_usd": 0.348535,
+            "cost_per_1000_usd": 2.90446,
+            "latency_ms": {
+              "n": 120,
+              "p50": 367.9,
+              "p95": 441.4
+            },
+            "cli_reported_usd": 0.348535,
+            "harness_overhead_input_tokens": 461
+          },
+          "single": {
+            "items": 120,
+            "calls": 12,
+            "cost_usd": 0.349273,
+            "cost_per_1000_usd": 2.91061,
+            "latency_ms": {
+              "n": 360,
+              "p50": 368.5,
+              "p95": 491.7
+            },
+            "cli_reported_usd": 0.349273
+          }
+        }
+      },
+      "jev_to_s55_cost_ratio": 0.078457
+    },
+    "c1": {
+      "JEV": {
+        "items": 200,
+        "calls": 200,
+        "cost_usd": 0.007437,
+        "cost_per_1000_usd": 0.037185,
+        "latency_ms": {
+          "n": 400,
+          "p50": 284.25,
+          "p95": 331.975
+        },
+        "scopes": {
+          "run1": {
+            "items": 200,
+            "calls": 200,
+            "cost_usd": 0.007437,
+            "cost_per_1000_usd": 0.037185,
+            "latency_ms": {
+              "n": 200,
+              "p50": 289.45,
+              "p95": 343.255
+            }
+          },
+          "run2": {
+            "items": 200,
+            "calls": 200,
+            "cost_usd": 0.007437,
+            "cost_per_1000_usd": 0.037185,
+            "latency_ms": {
+              "n": 200,
+              "p50": 280.35,
+              "p95": 322.94
+            }
+          },
+          "single": {
+            "items": 200,
+            "calls": 200,
+            "cost_usd": 0.007437,
+            "cost_per_1000_usd": 0.037185,
+            "latency_ms": {
+              "n": 400,
+              "p50": 284.25,
+              "p95": 331.975
+            }
+          }
+        }
+      },
+      "S55": {
+        "items": 200,
+        "calls": 20,
+        "cost_usd": 0.255403,
+        "cost_per_1000_usd": 1.277013,
+        "latency_ms": {
+          "n": 600,
+          "p50": 193.3,
+          "p95": 553.5
+        },
+        "cli_reported_usd": 0.255403,
+        "scopes": {
+          "draw1": {
+            "items": 200,
+            "calls": 20,
+            "cost_usd": 0.254172,
+            "cost_per_1000_usd": 1.27086,
+            "latency_ms": {
+              "n": 200,
+              "p50": 190.05,
+              "p95": 296.03
+            },
+            "cli_reported_usd": 0.254172,
+            "harness_overhead_input_tokens": 462
+          },
+          "draw2": {
+            "items": 200,
+            "calls": 20,
+            "cost_usd": 0.256918,
+            "cost_per_1000_usd": 1.28459,
+            "latency_ms": {
+              "n": 200,
+              "p50": 221.0,
+              "p95": 584.745
+            },
+            "cli_reported_usd": 0.256918,
+            "harness_overhead_input_tokens": 461
+          },
+          "draw3": {
+            "items": 200,
+            "calls": 20,
+            "cost_usd": 0.255118,
+            "cost_per_1000_usd": 1.27559,
+            "latency_ms": {
+              "n": 200,
+              "p50": 183.55,
+              "p95": 610.4
+            },
+            "cli_reported_usd": 0.255118,
+            "harness_overhead_input_tokens": 461
+          },
+          "single": {
+            "items": 200,
+            "calls": 20,
+            "cost_usd": 0.255403,
+            "cost_per_1000_usd": 1.277013,
+            "latency_ms": {
+              "n": 600,
+              "p50": 193.3,
+              "p95": 553.5
+            },
+            "cli_reported_usd": 0.255403
+          }
+        }
+      },
+      "jev_to_s55_cost_ratio": 0.029118
+    },
+    "c2": {
+      "JEV": {
+        "items": 200,
+        "calls": 200,
+        "cost_usd": 0.006852,
+        "cost_per_1000_usd": 0.034262,
+        "latency_ms": {
+          "n": 400,
+          "p50": 281.7,
+          "p95": 330.145
+        },
+        "scopes": {
+          "run1": {
+            "items": 200,
+            "calls": 200,
+            "cost_usd": 0.006852,
+            "cost_per_1000_usd": 0.034262,
+            "latency_ms": {
+              "n": 200,
+              "p50": 287.5,
+              "p95": 334.845
+            }
+          },
+          "run2": {
+            "items": 200,
+            "calls": 200,
+            "cost_usd": 0.006852,
+            "cost_per_1000_usd": 0.034262,
+            "latency_ms": {
+              "n": 200,
+              "p50": 277.55,
+              "p95": 324.81
+            }
+          },
+          "single": {
+            "items": 200,
+            "calls": 200,
+            "cost_usd": 0.006852,
+            "cost_per_1000_usd": 0.034262,
+            "latency_ms": {
+              "n": 400,
+              "p50": 281.7,
+              "p95": 330.145
+            }
+          }
+        }
+      },
+      "S55": {
+        "items": 200,
+        "calls": 20,
+        "cost_usd": 0.308595,
+        "cost_per_1000_usd": 1.542977,
+        "latency_ms": {
+          "n": 600,
+          "p50": 254.05,
+          "p95": 608.29
+        },
+        "cli_reported_usd": 0.308595,
+        "scopes": {
+          "draw1": {
+            "items": 200,
+            "calls": 20,
+            "cost_usd": 0.308626,
+            "cost_per_1000_usd": 1.54313,
+            "latency_ms": {
+              "n": 200,
+              "p50": 241.65,
+              "p95": 309.525
+            },
+            "cli_reported_usd": 0.308626,
+            "harness_overhead_input_tokens": 462
+          },
+          "draw2": {
+            "items": 200,
+            "calls": 20,
+            "cost_usd": 0.308452,
+            "cost_per_1000_usd": 1.54226,
+            "latency_ms": {
+              "n": 200,
+              "p50": 288.6,
+              "p95": 650.035
+            },
+            "cli_reported_usd": 0.308452,
+            "harness_overhead_input_tokens": 461
+          },
+          "draw3": {
+            "items": 200,
+            "calls": 20,
+            "cost_usd": 0.308708,
+            "cost_per_1000_usd": 1.54354,
+            "latency_ms": {
+              "n": 200,
+              "p50": 236.45,
+              "p95": 346.51
+            },
+            "cli_reported_usd": 0.308708,
+            "harness_overhead_input_tokens": 461
+          },
+          "single": {
+            "items": 200,
+            "calls": 20,
+            "cost_usd": 0.308595,
+            "cost_per_1000_usd": 1.542977,
+            "latency_ms": {
+              "n": 600,
+              "p50": 254.05,
+              "p95": 608.29
+            },
+            "cli_reported_usd": 0.308595
+          }
+        }
+      },
+      "jev_to_s55_cost_ratio": 0.022205
+    },
+    "all": {
+      "JEV": {
+        "items": 520,
+        "calls": 520,
+        "cost_usd": 0.041692,
+        "cost_per_1000_usd": 0.080177,
+        "latency_ms": {
+          "n": 1040,
+          "p50": 290.0,
+          "p95": 357.405
+        }
+      },
+      "S55": {
+        "items": 520,
+        "calls": 52,
+        "cost_usd": 0.913271,
+        "cost_per_1000_usd": 1.756291,
+        "latency_ms": {
+          "n": 1560,
+          "p50": 256.0,
+          "p95": 601.0
+        }
+      },
+      "jev_to_s55_cost_ratio": 0.045651
+    }
+  }
+}

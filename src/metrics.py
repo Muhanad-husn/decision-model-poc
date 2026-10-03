@@ -9,6 +9,7 @@ numpy.random.default_rng(20261002), the statistic recomputed on each resample.
 
 Slice 12: agreement, kappa, coder agreement, majority, contested, bootstrap.
 Slice 13: doubt AUROC, selective agreement, best-of-3 abstention, Brier, ECE, determinism.
+Slice 14: cost per 1,000 items and p50/p95 latency for both arms.
 Applying them to the real runs is slice 15.
 """
 
@@ -24,6 +25,18 @@ INVALID = "invalid"
 COVERAGES = (0.9, 0.8, 0.7)
 ECE_BINS = 10
 ECE_MIN_ITEMS = 100
+
+JEV_USD_PER_MILLION = 0.042  # input tokens only; output is free (PRD §4)
+# Sonnet 5.5 list price per million tokens, read from the pricing page on the run date. A cache
+# write is billed by its TTL, a cache read at 0.1x input (PRD §6.2: API-equivalent cost).
+S55_PRICE = {
+    "model": "claude-sonnet-5-5",
+    "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "as_of": "2026-10-03",
+    "usd_per_million": {
+        "input": 2.00, "cache_write_5m": 2.50, "cache_write_1h": 4.00, "cache_read": 0.20, "output": 10.00,
+    },
+}
 
 
 def _valid(label):
@@ -221,3 +234,48 @@ def determinism(run1, run2):
         same += _argmax(p) == _argmax(q)
         diffs.extend(abs(p.get(opt, 0.0) - q.get(opt, 0.0)) for opt in p.keys() | q.keys())
     return {"identical_argmax": same / len(run1), "max_abs_diff": max(diffs)}
+
+
+# --- slice 14 ------------------------------------------------------------------------------
+
+
+def jev_cost_usd(input_tokens):
+    """Logged input tokens, one count per call, at $0.042 per million."""
+    return sum(input_tokens) * JEV_USD_PER_MILLION / 1_000_000
+
+
+def s55_cost_usd(usage, price=S55_PRICE):
+    """API-equivalent cost of one call from its logged usage, each bucket at its list rate. A
+    cache write is split by TTL when the usage carries the split; without it every written
+    token is priced at the 5-minute rate, the API's default TTL."""
+    rate = price["usd_per_million"]
+    split = usage.get("cache_creation")
+    if isinstance(split, dict):
+        w5, w1h = split.get("ephemeral_5m_input_tokens") or 0, split.get("ephemeral_1h_input_tokens") or 0
+    else:
+        w5, w1h = usage.get("cache_creation_input_tokens") or 0, 0
+    total = ((usage.get("input_tokens") or 0) * rate["input"]
+             + w5 * rate["cache_write_5m"] + w1h * rate["cache_write_1h"]
+             + (usage.get("cache_read_input_tokens") or 0) * rate["cache_read"]
+             + (usage.get("output_tokens") or 0) * rate["output"])
+    return total / 1_000_000
+
+
+def s55_draw_cost_usd(calls, price=S55_PRICE):
+    """Cost of the calls that label items (batches and re-asks); the calibration call labels
+    nothing and is left out."""
+    return sum(s55_cost_usd(c["usage"], price) for c in calls if c["ids"])
+
+
+def cost_per_1000(usd, items):
+    return usd / items * 1000
+
+
+def s55_item_latencies(calls):
+    """One latency per labelled item: its call's duration_ms divided by the items in the call."""
+    return [c["duration_ms"] / len(c["ids"]) for c in calls if c["ids"] for _ in c["ids"]]
+
+
+def latency_percentiles(values):
+    """p50 and p95 by numpy's default linear interpolation, over one value per item."""
+    return {"n": len(values), "p50": float(np.percentile(values, 50)), "p95": float(np.percentile(values, 95))}
